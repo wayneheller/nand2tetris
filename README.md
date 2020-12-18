@@ -1,2 +1,2 @@
 # nand2tetris
-Project file for Nand2Tetris.org 
+Completed Project files for Nand2Tetris.org 
