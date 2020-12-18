@@ -1,0 +1,13 @@
+/**
+ * Helper function to return MSB:
+ * out = true if MSB is 1, 0 otherwise
+ */
+
+CHIP MSB16 {
+    IN in[16];
+    OUT out;
+
+    PARTS:
+    // Put your code here:
+    Mux (a=false, b=true, sel=in[15], out=out);
+}

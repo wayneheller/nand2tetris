@@ -1,0 +1,17 @@
+/**
+ * Helper function to test for zero:
+ * out = true if in == 0, 0 otherwise
+ */
+
+CHIP isZero16 {
+    IN in[16];
+    OUT out;
+
+    PARTS:
+    // Put your code here:
+    // perform 2 Or8Way's to determine if zero
+    Or8Way (in=in[0..7], out=orLSB);
+    Or8Way (in=in[8..15], out=orMSB);
+    Or (a=orLSB, b=orMSB, out=tout);
+    Not (in=tout, out=out);
+}
