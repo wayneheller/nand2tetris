@@ -54,10 +54,8 @@ CHIP ALU {
    Mux16 (a=nxandnyout, b=nxplusnyout, sel=f, out=fout);
    Not16(in=fout, out=notfout);
    // Need to create a temporary output internal pin, can't use outpin internally
-   Mux16 (a=fout, b=notfout, sel=no, out=out, out=tout, out[0..7]=lowbits, out[8..15]=highbits, out[15]=ng);
-
    // the test for negative is by looking at the Most Significant Bit
-   // And16 (a=tout, b=true, out[15]=ng);
+   Mux16 (a=fout, b=notfout, sel=no, out=out, out[0..7]=lowbits, out[8..15]=highbits, out[15]=ng);
 
    // Test for zero
    Or8Way (in=lowbits, out=orLSB);
