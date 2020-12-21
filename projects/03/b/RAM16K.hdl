@@ -16,4 +16,14 @@ CHIP RAM16K {
 
     PARTS:
     // Put your code here:
+    // The MSB contains the address of the RAM4K block to access, the LSB contains the address within the RAM4K block
+    DMux4Way (in=load, sel=address[12..13], a=LoadRAM0, b=LoadRAM1, c=LoadRAM2, d=LoadRAM3);
+	RAM4K (in=in, load=LoadRAM0, address=address[0..11], out=RAM0out);
+	RAM4K (in=in, load=LoadRAM1, address=address[0..11], out=RAM1out);
+	RAM4K (in=in, load=LoadRAM2, address=address[0..11], out=RAM2out);
+	RAM4K (in=in, load=LoadRAM3, address=address[0..11], out=RAM3out);
+
+
+	// Read From Address
+    Mux4Way16 (a=RAM0out, b=RAM1out, c=RAM2out, d=RAM3out, sel=address[12..13], out=out);
 }

@@ -16,4 +16,17 @@ CHIP RAM512 {
 
     PARTS:
     // Put your code here:
+    // The MSB contains the address of the RAM64 block to access, the LSB contains the address within the RAM64 block
+    DMux8Way (in=load, sel=address[6..8], a=LoadRAM0, b=LoadRAM1, c=LoadRAM2, d=LoadRAM3, e=LoadRAM4, f=LoadRAM5, g=LoadRAM6, h=LoadRAM7);
+	RAM64 (in=in, load=LoadRAM0, address=address[0..5], out=RAM0out);
+	RAM64 (in=in, load=LoadRAM1, address=address[0..5], out=RAM1out);
+	RAM64 (in=in, load=LoadRAM2, address=address[0..5], out=RAM2out);
+	RAM64 (in=in, load=LoadRAM3, address=address[0..5], out=RAM3out);
+	RAM64 (in=in, load=LoadRAM4, address=address[0..5], out=RAM4out);
+	RAM64 (in=in, load=LoadRAM5, address=address[0..5], out=RAM5out);
+	RAM64 (in=in, load=LoadRAM6, address=address[0..5], out=RAM6out);
+	RAM64 (in=in, load=LoadRAM7, address=address[0..5], out=RAM7out);
+
+	// Read From Address
+    Mux8Way16 (a=RAM0out, b=RAM1out, c=RAM2out, d=RAM3out, e=RAM4out, f=RAM5out, g=RAM6out, h=RAM7out, sel=address[6..8], out=out);
 }
