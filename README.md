@@ -8,3 +8,10 @@ Chapter 2: Building the ALU
 There are a couple of learning unlocks that I discovered on the way that allowed me to greatly simplify the code and build the ALU without helper chips and only using the built-in chips from Chapters 1 and 2.
 * When considering how to provide conditional (if/then) functionality, take a hard look at the Multiplexor chip Mux.  
 * When implementing the ng and zr output signals, you may want to create a subbus from an internal pin.  Subbussing internal pins is not supported by the Hardware Simulator.  To work around this limitation, I initial built some helper chips and was able to successfully complete the assignment, knowing that approach was not recommended by the instructors.  The missing piece of information is documented in the Survival Guide but I didn't grok it right away.  it is possible to create mutiple outputs from a chip.  For example, And16 (a=a, b=b, out=out, out[15]=t1, out[0..7]=tlsb, out[8...15]= tmsb, and so on).  With this bit of knowledge, you should be able to create all the additional logic necessary for the ng and zr signal outputs.
+
+Chapter 3: Memory
+* All of the needed clues for the project are described in the videos.
+* First time using DMux8Way as a building block to pass the load input to the right chip
+* First time using Mux8Way as a building block to determine which Register or RAM to read
+* Note that the final RAM chip RAM16K just needs 4 RAM4K chips.  The others required 8.
+
