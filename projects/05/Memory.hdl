@@ -28,4 +28,18 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+    // 0 - 16,383 is RAM memory, 16,383 = 0011111111111111 14 ones
+    // 16,384 - 24,575 is SCREEN Memory 24,575 = 0101111111111111
+    // 24,576 is KEYBOARD map 24,576 = 0110000000000000
+    // Greater than 24,577 is ignored
+
+    DMux (in=load, sel=address[14], a=LoadRAM, b=SCREENKEYBOARD); // The 14th bit determines whether it is a RAM or SCREEN/KEYBOARD address
+    Mux (a=SCREENKEYBOARD, b=false, sel=address[13], out=LoadSCREEN); // The 13th bit determines whether it is SCREEN or KEYBOARD
+	RAM16K (in=in, load=LoadRAM, address=address[0..13], out=RAM0out);
+	Screen (in=in, load=LoadSCREEN, address=address[0..12], out=SCREENout);
+	Keyboard (out=KEYBOARDout);
+
+
+	// Read From Address
+    Mux4Way16 (a=RAM0out, b=RAM0out, c=SCREENout, d=KEYBOARDout, sel=address[13..14], out=out); // the combo of 13 and 14 determine what to output 00 and 01 are RAM output, 10 is Screen, 11 is Keyboard
 }

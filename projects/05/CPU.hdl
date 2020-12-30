@@ -40,4 +40,77 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    // the following is based on the CPU Wiring diagram in the class slides
+    // C instruction is in the form of 1 1 1 a c1 c2 c3 c4 c5 c6 d1 d2 d3 j1 j2 j3
+
+    // Parse out the OptCode for clarity rather than reference instruction[15]
+    Not (in=instruction[15], out=OptCodeA);
+    And (a=instruction[15], b=true, out=OptCodeC);
+
+    // d1 determines whether or not to load the A Register for a C instruction
+    And (a=instruction[5], b=true, out=d1);
+
+    // d2 determines whether or not to load the D Register for a C instruction
+    And (a=instruction[4], b=true, out=d2);
+
+    // d3 determines whether or not to load the Memory for a C instruction
+    And (a=instruction[3], b=true, out=d3);
+
+    // j1 j2 j3 determine the jump to a new instruction for a C instruction
+    And16 (a[0..2]=instruction[0..2], b[0..2]=true, out[0..2]=j1j2j3);
+ 
+    // For the Mux16 connected to the A register, select the ALU output when Opt Code is C and the destination bit (d1) is true; otherwise, select the instruction which is a memory address
+    And (a=OptCodeC, b=d1, out=loadMux16AfromALU);
+    Mux16 (a=instruction, b=ALUout, sel=loadMux16AfromALU, out=Mux16Aout); 
+
+    // Load the A Register when Opt Code is A OR when destination bit d1 is true
+    Or (a=d1, b=OptCodeA, out=loadARegister);
+
+    ARegister (in=Mux16Aout, load=loadARegister, out=ARegout, out[0..14]=addressM);
+
+    // Load the D Register when Opt Code is C AND when destination bit d2 is true
+    And (a=d2, b=OptCodeC, out=loadDRegister);
+    DRegister (in=ALUout, load=loadDRegister, out=DRegout);
+
+    // Load the contents of the A register into the ALU when instruction[12] "a" is false, else load the inM
+    Mux16 (a=ARegout, b=inM, sel=instruction[12], out=Mux16AMout);
+
+    ALU (x=DRegout, y=Mux16AMout, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], zr=zrout, ng=ngout, out=ALUout, out=outM);
+
+    // Below are the calculations to determine whether to jump based on the values of j1, j2, j3 in the instruction which are instruction[0..2]
+
+    // jump | j1 | j2 | J3 | effect             | condition to test, if true then jump
+    // null | 0  | 0  | 0  | no jump            | false
+    // JGT  | 0  | 0  | 1  | if out>0 jump      | Not zr And Not ng
+    // JEQ  | 0  | 1  | 0  | if out=0 jump      | zr
+    // JGE  | 0  | 1  | 1  | if out≥0 jump      | zr Or Not ng
+    // JLT  | 1  | 0  | 0  | if out<0 jump      | ng
+    // JNE  | 1  | 0  | 1  | if out≠0 jump      | Not zr
+    // JLE  | 1  | 1  | 0  | if out≤0 jump      | zr Or ng
+    // JMP  | 1  | 1  | 1  | unconditional jump | true
+
+    Not (in=zrout, out=Notzr);
+    Not (in=ngout, out=Notng);
+
+    // Condition 001 for j1 j2 j3
+    And (a=Notzr, b=Notng, out=c001);
+
+    // Condition 011 for j1 j2 j3
+    Or (a=zrout, b=Notng, out=c011);
+
+    // Condition 110 for j1 j2 j3
+    Or (a=zrout, b=ngout, out=c110);
+
+    // Select the test condition based on the j1 j2 j3 instruction bits
+    Mux8Way16 (a[0]=false, b[0]=c001, c[0]=zrout, d[0]=c011, e[0]=ngout, f[0]=Notzr, g[0]=c110, h[0]=true, sel=j1j2j3, out[0]=loadPCtmp);
+    And (a=loadPCtmp, b=OptCodeC, out[0]=loadPC); // only load pc with an address if this is a C instruction
+
+    // If not jumping to an instruction, then increment to the next instruction
+    Not (in=loadPC, out=incPC);
+
+    // write to the data memory when this is a C instruction and destination bit d3 is true
+    And (a=OptCodeC, b=d3, out=writeM);
+
+    PC (in=ARegout, load=loadPC, inc=incPC, reset=reset, out[0..14]=pc);
 }

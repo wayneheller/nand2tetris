@@ -20,4 +20,12 @@ CHIP Computer {
 
     PARTS:
     // Put your code here:
+    // All that is needed is to connect inputs and outputs among these 3 components.
+    ROM32K (address=indexofnextinstructionfromPC, out=nextInstructionfromROM);
+    CPU (inM=valuefromMemory, instruction=nextInstructionfromROM, reset=reset, outM=valuetowritetoMemory, writeM=writevaluetoMemory, addressM=addressMfromCPU, pc=indexofnextinstructionfromPC);
+    Memory (in=valuetowritetoMemory, load=writevaluetoMemory, address=addressMfromCPU, out=valuefromMemory);
+
+   
+
+   
 }
