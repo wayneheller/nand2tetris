@@ -2,6 +2,8 @@
 Completed Project files for Nand2Tetris.org 
 Tips for completing the projects:
 
+PLEASE NOTE THAT ALL PROJECT FILES ARE IN THE MASTER BRANCH OF THIS REPO.
+
 Chapter 1: I found it helpful to create an Excel workbook of truth tables for each of the basic chips.  As I was building a new chip, I would reference the prior ones to see how they could be manipulated to provide the necessary output.  There is a copy of my Excel file with notes at the root of the project folder in this repo.
 
 Chapter 2: Building the ALU
@@ -27,3 +29,10 @@ Chapter 5:
 * Hint: the ALU output bits are useful for controling the program counter pc chip
 * Hint: the inputs for the ALU are very simple and straight forward in contrast to those for the Mux16, Register and Program Control chips. You will need to use some logic gates to derive most of those controls.
 * Hint: to determine how to chose between the A register and the M memory input for the ALU input, carefully study the hack language spec in chapter 4 for the C instruction specification.
+
+Chapter 6:
+* The video series for this week's lessons are a bit repetitive but worth viewing in its entirety.
+* I followed the recommended software architecture and approach.  My assembler is built in R.
+* The recommended approach is to process the .asm file in 2 passes.  Pass 1 handles the user defined program labels, Pass two codes instructions and handles assignment of new memory locations.   I initially made the mistake of dealing with the memory location allocation in pass 1 but that approach wont work because you don't know whether a @USER_NAMED_ADDRESS is a program line label or a new user defined variable during the first pass.
+* I used a lot of print to console statements to track program flow and outputs of intermediate operations.  Also, the provided Assember utility stops processing when there is a comparison error.  Comparing the machine code line at the point helped me find the errors in my logic.
+* I used Dictionary objects to store the mappings.  Maintaining only 1 symbol dictionary for built-in symbols, program labels and user defined variables simplified the logic of the program.  I maintained separte dictionaries for jump, dest and comp mappings.  The comp dictionary included the a and c1-c6 mappings combined.
