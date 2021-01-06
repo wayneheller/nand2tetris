@@ -26,5 +26,6 @@ switcherSegment = {
 	"argument": "ARG",
 	"this": "THIS",
 	"that": "THAT",
-	"temp": "5"
+	"temp": "5",
+	"static": "static"
 	}

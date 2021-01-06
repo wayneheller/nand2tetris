@@ -8,15 +8,23 @@ class CodeCommand:
 	def __init__(self, vmfile):
 		asmfile = vmfile.replace(".vm", ".asm")
 		self.__asmfile = open(asmfile, 'w')
+		s = asmfile.split("/")
+		s = s[len(s)-1]
+		print(s)
+		self.__staticvarname = s[:-3] # Save off the root file name without extension with the period
 
 	def close(self):
 		self.__asmfile.close()
 
 	def writePush(self, segment, idx):
 		#print(segment, idx)
-		if (segment == "constant"):
-			self.__asmfile.writelines("@" + idx + '\n')
-			self.__asmfile.writelines("D=A\n")
+		if (segment == "constant" or "static"):
+			if (segment == "constant"):
+				self.__asmfile.writelines("@" + idx + '\n')
+				self.__asmfile.writelines("D=A\n")
+			else:
+				self.__asmfile.writelines("@" + self.__staticvarname  + idx + '\n') # static variables
+				self.__asmfile.writelines("D=M\n")
 			self.__asmfile.writelines("@SP\n")
 			self.__asmfile.writelines("A=M\n")
 			self.__asmfile.writelines("M=D\n")
@@ -39,13 +47,16 @@ class CodeCommand:
 
 	def writePop(self, segment, idx):
 		seg = switcherSegment.get(segment) 		# get segment code
-
-		self.__asmfile.writelines("@" + idx + '\n')	# load the value of the offset index
-		self.__asmfile.writelines("D=A\n")
-		self.__asmfile.writelines("@" + seg + '\n')
-		if (seg.isnumeric()):						# for temp segment the value passed is base location of the register, not a pointer to it.
-			self.__asmfile.writelines("D=D+A\n")
-		self.__asmfile.writelines("D=D+M\n")		# D = mem location to pop the stack to
+		if (seg == "static"):
+			self.__asmfile.writelines("@" + self.__staticvarname  + idx + '\n') # static variables
+			self.__asmfile.writelines("D=A\n")			# D = mem location to pop the stack to
+		else:
+			self.__asmfile.writelines("@" + idx + '\n')	# load the value of the offset index
+			self.__asmfile.writelines("D=A\n")
+			self.__asmfile.writelines("@" + seg + '\n')
+			if (seg.isnumeric()):						# for temp segment the value passed is base location of the register, not a pointer to it.
+				self.__asmfile.writelines("D=D+A\n")
+			self.__asmfile.writelines("D=D+M\n")		# D = mem location to pop the stack to
 
 		self.__asmfile.writelines("@SP\n")			# decrement the stack pointer
 		self.__asmfile.writelines("M=M-1\n")	
