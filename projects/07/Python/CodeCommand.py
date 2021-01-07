@@ -18,11 +18,18 @@ class CodeCommand:
 
 	def writePush(self, segment, idx):
 		#print(segment, idx)
-		if (segment == "constant" or "static"):
+		if (segment == "constant" or segment == "static" or segment == 'pointer'): # there is no index lookup for these memory segment
 			if (segment == "constant"):
 				self.__asmfile.writelines("@" + idx + '\n')
 				self.__asmfile.writelines("D=A\n")
+			elif (segment == "pointer"):
+				if (idx == '0'):
+					self.__asmfile.writelines("@THIS\n")
+				else:
+					self.__asmfile.writelines("@THAT\n")
+				self.__asmfile.writelines("D=M\n")
 			else:
+				print(segment)
 				self.__asmfile.writelines("@" + self.__staticvarname  + idx + '\n') # static variables
 				self.__asmfile.writelines("D=M\n")
 			self.__asmfile.writelines("@SP\n")
@@ -30,18 +37,22 @@ class CodeCommand:
 			self.__asmfile.writelines("M=D\n")
 			self.__asmfile.writelines("@SP\n")
 			self.__asmfile.writelines("M=M+1\n")
-		else:
-			seg = switcherSegment.get(segment) 		# get segment code
+		else:											# for the other memory segments there is an indexed lookup which requires some addional manipulation
+			seg = switcherSegment.get(segment) 			# translate vm segment name to hack segment pointer
 			
-			self.__asmfile.writelines("@" + idx + '\n')		# load the value of the offset index
+			self.__asmfile.writelines("@" + idx + '\n')	# load the value of the offset index which is a constant
 			self.__asmfile.writelines("D=A\n")
-			self.__asmfile.writelines("@" + seg + '\n')		
-			self.__asmfile.writelines("D=D+M\n")		# add the offset to the segment address
+			self.__asmfile.writelines("@" + seg + '\n')	
+			if (seg.isnumeric()):						# for temp segment the value passed is base location of the register, not a pointer to it.
+				self.__asmfile.writelines("D=D+A\n")
+			else:
+				self.__asmfile.writelines("D=D+M\n")	
+			#self.__asmfile.writelines("D=D+M\n")		# add the offset to the segment address, D now contains the target address to the memory segment
 			self.__asmfile.writelines("A=D\n")			# go to the segment address and get the value
-			self.__asmfile.writelines("D=M\n")
+			self.__asmfile.writelines("D=M\n")			# D now contains the value from the segment to push to the stack
 			self.__asmfile.writelines("@SP\n")
 			self.__asmfile.writelines("A=M\n")			# go to the stack memory
-			self.__asmfile.writelines("M=D\n")			# set to the segment value
+			self.__asmfile.writelines("M=D\n")			# set to the value from the memory segment
 			self.__asmfile.writelines("@SP\n")			# increment the stack pointer
 			self.__asmfile.writelines("M=M+1\n")
 
@@ -50,13 +61,21 @@ class CodeCommand:
 		if (seg == "static"):
 			self.__asmfile.writelines("@" + self.__staticvarname  + idx + '\n') # static variables
 			self.__asmfile.writelines("D=A\n")			# D = mem location to pop the stack to
+		elif (seg == "pointer"):
+			if (idx == '0'):
+				self.__asmfile.writelines("@THIS\n")
+			else:
+				self.__asmfile.writelines("@THAT\n")
+			self.__asmfile.writelines("D=A\n")			# D = mem location to pop the stack to
+
 		else:
 			self.__asmfile.writelines("@" + idx + '\n')	# load the value of the offset index
 			self.__asmfile.writelines("D=A\n")
 			self.__asmfile.writelines("@" + seg + '\n')
 			if (seg.isnumeric()):						# for temp segment the value passed is base location of the register, not a pointer to it.
 				self.__asmfile.writelines("D=D+A\n")
-			self.__asmfile.writelines("D=D+M\n")		# D = mem location to pop the stack to
+			else:
+				self.__asmfile.writelines("D=D+M\n")		# D = mem location to pop the stack to
 
 		self.__asmfile.writelines("@SP\n")			# decrement the stack pointer
 		self.__asmfile.writelines("M=M-1\n")	

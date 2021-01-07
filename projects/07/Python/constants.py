@@ -27,5 +27,6 @@ switcherSegment = {
 	"this": "THIS",
 	"that": "THAT",
 	"temp": "5",
-	"static": "static"
+	"static": "static",
+	"pointer": "pointer"
 	}
