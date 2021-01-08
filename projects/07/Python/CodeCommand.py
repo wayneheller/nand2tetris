@@ -12,6 +12,7 @@ class CodeCommand:
 		s = s[len(s)-1]
 		print(s)
 		self.__staticvarname = s[:-3] # Save off the root file name without extension with the period
+		self.__labelcnt = 0 # label counter for conditional statements
 
 	def close(self):
 		self.__asmfile.close()
@@ -89,26 +90,52 @@ class CodeCommand:
 
 
 	def writeArithmetic(self, currentCmd):
-		if (currentCmd == 'add' or currentCmd == 'sub'):
-			self.__asmfile.writelines("@SP\n")			# decrement the stack pointer
-			self.__asmfile.writelines("M=M-1\n")	
-			self.__asmfile.writelines("@SP\n")	
-			self.__asmfile.writelines("A=M\n")											
-			self.__asmfile.writelines("D=M\n")			# place y value in D
-
+		
+		#print(currentCmd)
+		self.__asmfile.writelines("@SP\n")			# decrement the stack pointer
+		self.__asmfile.writelines("M=M-1\n")	
+		self.__asmfile.writelines("@SP\n")	
+		self.__asmfile.writelines("A=M\n")											
+		self.__asmfile.writelines("D=M\n")			# place y value in D
+		if (currentCmd != 'neg' and currentCmd != 'not'): # these operations only need 1 value from the stack
 			self.__asmfile.writelines("@SP\n")			# decrement the stack pointer, 
 			self.__asmfile.writelines("M=M-1\n")	
 			self.__asmfile.writelines("@SP\n")			
 			self.__asmfile.writelines("A=M\n")
-														# x value is in M 
-			if (currentCmd == 'add'):
-				self.__asmfile.writelines("M=M+D\n")	# replace stack value with x + y  
-			else:
-				self.__asmfile.writelines("M=M-D\n")	# replace stack value with x - y
-			
-			self.__asmfile.writelines("@SP\n")			# increment stack pointer
-			self.__asmfile.writelines("M=M+1\n")		
+													# x value is in M 
+		if (currentCmd == 'add'):
+			self.__asmfile.writelines("M=M+D\n")	# replace stack value with x + y  
+		elif (currentCmd == 'sub'):
+			self.__asmfile.writelines("M=M-D\n")	# replace stack value with x - y
+		elif (currentCmd == 'and'):
+			self.__asmfile.writelines("M=D&M\n")	# replace stack value with y & x  D&M is a supported operation of the ALU not M&D
+		elif (currentCmd == 'or'):
+			self.__asmfile.writelines("M=D|M\n")	# replace stack value with y | x  D|M is a supported operation of the ALU not M|D
+		elif (currentCmd == 'eq' or currentCmd == 'lt' or currentCmd == 'gt'):
+			self.__asmfile.writelines("D=M-D\n")
+			jump = switcherCondition.get(currentCmd)
+			self.__asmfile.writelines("@IF." + str(self.__labelcnt) + "\n")
+			self.__asmfile.writelines("D;" + jump + "\n")
+			self.__asmfile.writelines("D=0\n")
+			self.__asmfile.writelines("@ENDIF." + str(self.__labelcnt) + "\n")
+			self.__asmfile.writelines("0;JMP\n")
+			self.__asmfile.writelines("(IF." + str(self.__labelcnt) + ")\n")
+			self.__asmfile.writelines("D=-1\n")
+			self.__asmfile.writelines("(ENDIF." + str(self.__labelcnt) + ")\n")
+			self.__asmfile.writelines("@SP\n")	
+			self.__asmfile.writelines("A=M\n")	
+			self.__asmfile.writelines("M=D\n")
+			self.__labelcnt = self.__labelcnt + 1
+		elif (currentCmd == "neg"):
+			self.__asmfile.writelines("M=-D\n")
+		elif (currentCmd == "not"):
+			self.__asmfile.writelines("M=!D\n")
+
+
+		self.__asmfile.writelines("@SP\n")			# increment stack pointer
+		self.__asmfile.writelines("M=M+1\n")		
 		
+
 
 
 

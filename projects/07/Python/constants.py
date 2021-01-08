@@ -14,10 +14,17 @@ C_CALL = 9
 switcher = {
 	"add": C_ARITHEMETIC,
 	"sub": C_ARITHEMETIC,
+	"eq":  C_ARITHEMETIC,
+	"lt":  C_ARITHEMETIC,
+	"gt":  C_ARITHEMETIC,
+	"and": C_ARITHEMETIC,
+	"or":  C_ARITHEMETIC,
+	"neg": C_ARITHEMETIC,
+	"not": C_ARITHEMETIC,
 	"pop": C_POP,
 	"push": C_PUSH,
 	"label": C_LABEL,
-	"if": C_IF,
+	"if":  C_IF,
 }
 
 switcherSegment = {
@@ -30,3 +37,10 @@ switcherSegment = {
 	"static": "static",
 	"pointer": "pointer"
 	}
+
+switcherCondition = {
+	"eq": "JEQ",
+	"lt": "JLT",
+	"gt": "JGT"
+
+}
