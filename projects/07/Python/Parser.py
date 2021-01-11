@@ -50,7 +50,7 @@ class Parser:
 				if len(instruction) >=1: 
 					self.__currentCmd = instruction[0]
 
-					self.__commandType = switcher.get(instruction[0])
+					self.__commandType = switcherCmdType.get(instruction[0])
 				if len(instruction) >=2:
 					self.__arg1 = instruction[1]
 				if len(instruction) >=3:

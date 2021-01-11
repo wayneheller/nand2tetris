@@ -20,6 +20,12 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 			c.writePop(p.arg1, p.arg2)
 		elif (p.commandType == C_ARITHEMETIC):
 			c.writeArithmetic(p.currentCmd)
+		elif (p.commandType == C_LABEL):
+			c.writeLabel(p.arg1)
+		elif (p.commandType == C_GOTO):
+			c.writeGoto(p.arg1)
+		elif (p.commandType == C_IF):
+			c.writeIf(p.arg1)
 		if (p.hasMoreCommands == False):
 			c.close()
 			break

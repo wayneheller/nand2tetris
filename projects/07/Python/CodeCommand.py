@@ -18,6 +18,7 @@ class CodeCommand:
 		self.__asmfile.close()
 
 	def writePush(self, segment, idx):
+		self.__asmfile.writelines("//push " + segment + " " + idx + "\n")
 		#print(segment, idx)
 		if (segment == "constant" or segment == "static" or segment == 'pointer'): # there is no index lookup for these memory segment
 			if (segment == "constant"):
@@ -58,6 +59,7 @@ class CodeCommand:
 			self.__asmfile.writelines("M=M+1\n")
 
 	def writePop(self, segment, idx):
+		self.__asmfile.writelines("//pop " + segment + " " + idx + "\n")
 		seg = switcherSegment.get(segment) 		# get segment code
 		if (seg == "static"):
 			self.__asmfile.writelines("@" + self.__staticvarname  + idx + '\n') # static variables
@@ -90,7 +92,7 @@ class CodeCommand:
 
 
 	def writeArithmetic(self, currentCmd):
-		
+		self.__asmfile.writelines("// " + currentCmd + "\n")
 		#print(currentCmd)
 		self.__asmfile.writelines("@SP\n")			# decrement the stack pointer
 		self.__asmfile.writelines("M=M-1\n")	
@@ -135,11 +137,37 @@ class CodeCommand:
 		self.__asmfile.writelines("@SP\n")			# increment stack pointer
 		self.__asmfile.writelines("M=M+1\n")		
 		
-
-
-
-
-
-
-
 		
+	def setFileName(self, Filename):
+		pass
+
+	def writeInit(self):
+		pass
+
+	def writeLabel(self, Labelname):
+		self.__asmfile.writelines("(" + Labelname + ")\n")	
+
+	def writeGoto(self, Labelname):				# Impletements Goto command
+		self.__asmfile.writelines("@" + Labelname + "\n")
+		self.__asmfile.writelines("0;JMP" + "\n")
+
+	def writeIf(self, Labelname):				# Implements if-goto instruction
+	    
+		self.__asmfile.writelines("// if-goto " + Labelname + "\n")
+		self.__asmfile.writelines("@SP\n")		# decrement the stack pointer
+		self.__asmfile.writelines("M=M-1\n")	# decrement the stack		
+		self.__asmfile.writelines("@SP\n")		# Pop the condition from the Stack
+		self.__asmfile.writelines("A=M\n")											
+		self.__asmfile.writelines("D=M\n")											
+		self.__asmfile.writelines("@" + Labelname + "\n")	# set the jump to address
+		self.__asmfile.writelines("D;JNE" + "\n")# jump if the condition is not 0
+
+
+	def writeFunction(self, Functionname):
+		pass
+
+	def writeCall(self, FunctionName):
+		pass
+
+	def writeReturn(self):
+		pass

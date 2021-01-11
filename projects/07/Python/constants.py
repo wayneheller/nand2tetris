@@ -11,7 +11,7 @@ C_FUNCTION = 7
 C_RETURN = 8
 C_CALL = 9
 
-switcher = {
+switcherCmdType = {
 	"add": C_ARITHEMETIC,
 	"sub": C_ARITHEMETIC,
 	"eq":  C_ARITHEMETIC,
@@ -21,10 +21,15 @@ switcher = {
 	"or":  C_ARITHEMETIC,
 	"neg": C_ARITHEMETIC,
 	"not": C_ARITHEMETIC,
-	"pop": C_POP,
-	"push": C_PUSH,
-	"label": C_LABEL,
-	"if":  C_IF,
+	"pop": 		C_POP,
+	"push": 	C_PUSH,
+	"label":	C_LABEL,
+	"goto": 	C_GOTO,
+	"if-goto":  C_IF,
+	"function": C_FUNCTION,
+	"call": 	C_CALL,
+	"return": 	C_RETURN
+
 }
 
 switcherSegment = {
