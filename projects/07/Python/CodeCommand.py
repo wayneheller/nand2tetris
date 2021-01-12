@@ -164,10 +164,68 @@ class CodeCommand:
 
 
 	def writeFunction(self, Functionname):
-		pass
+		self.__asmfile.writelines("(" + Functionname + ")\n")	
 
-	def writeCall(self, FunctionName):
+	def writeCall(self, FunctionName, localvars):
 		pass
 
 	def writeReturn(self):
-		pass
+		self.__asmfile.writelines("// return\n")
+
+		# Set return address to LCL - 5
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@5\n")
+		self.__asmfile.writelines("D=D-A\n")
+		self.__asmfile.writelines("@12\n")		# Register 12 is the temporary local
+		self.__asmfile.writelines("M=D\n")	
+
+		# Set ARG to stack value - the return value
+		self.__asmfile.writelines("@SP\n")		# decrement the stack pointer
+		self.__asmfile.writelines("M=M-1\n")	# decrement the stack		
+		self.__asmfile.writelines("@SP\n")		# Pop the condition from the Stack
+		self.__asmfile.writelines("A=M\n")											
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@ARG\n")
+		self.__asmfile.writelines("A=M\n")	
+		self.__asmfile.writelines("M=D\n")
+		# Set SP to ARG + 1
+		self.__asmfile.writelines("D=A+1\n")
+		self.__asmfile.writelines("@SP\n")	
+		self.__asmfile.writelines("M=D\n")	
+
+		# Set That to LCL - 1
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("A=M-1\n")	
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@THAT\n")
+		self.__asmfile.writelines("M=D\n")
+
+		# Set This to LCL - 2
+		self.__asmfile.writelines("@2\n")
+		self.__asmfile.writelines("D=A\n")
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("A=M-D\n")	
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@THIS\n")
+		self.__asmfile.writelines("M=D\n")
+		# Set ARG to LCL - 3
+		self.__asmfile.writelines("@3\n")
+		self.__asmfile.writelines("D=A\n")
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("A=M-D\n")	
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@ARG\n")
+		self.__asmfile.writelines("M=D\n")
+		# Set LCL to LCL - 4
+		self.__asmfile.writelines("@4\n")
+		self.__asmfile.writelines("D=A\n")
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("A=M-D\n")	
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("M=D\n")		
+		# goto return address
+		self.__asmfile.writelines("@12\n")
+		self.__asmfile.writelines("A=M\n")
+		

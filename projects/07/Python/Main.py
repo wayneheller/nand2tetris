@@ -26,6 +26,12 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 			c.writeGoto(p.arg1)
 		elif (p.commandType == C_IF):
 			c.writeIf(p.arg1)
+		elif (p.commandType == C_FUNCTION):
+			c.writeFunction(p.arg1)
+		elif (p.commandType == C_RETURN):
+			c.writeReturn()	
+		elif (p.commandType == C_CALL):
+			c.writeCall(p.arg1, p.arg2)	
 		if (p.hasMoreCommands == False):
 			c.close()
 			break
