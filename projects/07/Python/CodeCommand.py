@@ -163,11 +163,78 @@ class CodeCommand:
 		self.__asmfile.writelines("D;JNE" + "\n")# jump if the condition is not 0
 
 
-	def writeFunction(self, Functionname):
+	def writeFunction(self, Functionname, localvars):
 		self.__asmfile.writelines("(" + Functionname + ")\n")	
+		self.__asmfile.writelines("// Setting " + Functionname + " " + localvars + "local variables\n")
+		for i in range(int(localvars)):
+			self.__asmfile.writelines("@SP\n")		# Push the local variables onto the stack
+			self.__asmfile.writelines("A=M\n")
+			self.__asmfile.writelines("M=0\n")	
+			self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+			self.__asmfile.writelines("M=M+1\n")
 
 	def writeCall(self, FunctionName, localvars):
-		pass
+		self.__asmfile.writelines("// call " + FunctionName + " " + localvars + "\n")
+
+		retLabel = FunctionName + '$ret.1'
+		self.__asmfile.writelines("@" + retLabel + "\n")
+		self.__asmfile.writelines("D=A\n")	
+		self.__asmfile.writelines("@SP\n")		# push the return address
+		self.__asmfile.writelines("A=M\n")	
+		self.__asmfile.writelines("M=D\n")	
+		self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+		self.__asmfile.writelines("M=M+1\n")
+
+		
+		self.__asmfile.writelines("@LCL\n")
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@SP\n")		# push LCL of the caller
+		self.__asmfile.writelines("A=M\n")
+		self.__asmfile.writelines("M=D\n")	
+		self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+		self.__asmfile.writelines("M=M+1\n")
+
+		self.__asmfile.writelines("@ARG\n")
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@SP\n")		# push ARG of the caller
+		self.__asmfile.writelines("A=M\n")
+		self.__asmfile.writelines("M=D\n")	
+		self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+		self.__asmfile.writelines("M=M+1\n")
+
+		self.__asmfile.writelines("@THIS\n")
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@SP\n")		# push THIS of the caller
+		self.__asmfile.writelines("A=M\n")
+		self.__asmfile.writelines("M=D\n")	
+		self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+		self.__asmfile.writelines("M=M+1\n")
+
+		self.__asmfile.writelines("@THAT\n")
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@SP\n")		# push THAT of the caller
+		self.__asmfile.writelines("A=M\n")
+		self.__asmfile.writelines("M=D\n")	
+		self.__asmfile.writelines("@SP\n")		# increment the stack pointer
+		self.__asmfile.writelines("M=M+1\n")
+
+		self.__asmfile.writelines("@SP\n")		# reposition ARG to SP-5-nArgs
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@5\n")		
+		self.__asmfile.writelines("D=D-A\n")
+		self.__asmfile.writelines("@" + localvars + "\n")
+		self.__asmfile.writelines("D=D-A\n")
+		self.__asmfile.writelines("@ARG\n")
+		self.__asmfile.writelines("M=D\n")
+
+		self.__asmfile.writelines("@SP\n")		# reposition LCL to SP
+		self.__asmfile.writelines("D=M\n")
+		self.__asmfile.writelines("@LCL\n")		
+		self.__asmfile.writelines("M=D\n")																			
+
+		self.writeGoto(FunctionName)
+
+		self.writeLabel(retLabel)
 
 	def writeReturn(self):
 		self.__asmfile.writelines("// return\n")
@@ -177,6 +244,8 @@ class CodeCommand:
 		self.__asmfile.writelines("D=M\n")
 		self.__asmfile.writelines("@5\n")
 		self.__asmfile.writelines("D=D-A\n")
+		self.__asmfile.writelines("A=D\n")
+		self.__asmfile.writelines("D=M\n")
 		self.__asmfile.writelines("@12\n")		# Register 12 is the temporary local
 		self.__asmfile.writelines("M=D\n")	
 
@@ -228,4 +297,5 @@ class CodeCommand:
 		# goto return address
 		self.__asmfile.writelines("@12\n")
 		self.__asmfile.writelines("A=M\n")
+		self.__asmfile.writelines("0;JMP\n")
 		
