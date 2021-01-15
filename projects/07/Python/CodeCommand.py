@@ -5,14 +5,22 @@ from constants import *
 
 class CodeCommand:
 
-	def __init__(self, vmfile):
-		asmfile = vmfile.replace(".vm", ".asm")
-		self.__asmfile = open(asmfile, 'w')
+	def __init__(self, asmfile):
+		#asmfile = vmfile.replace(".vm", ".asm")
+		self.__asmfile = open(asmfile, 'w')	# Open the asm file and initialize with bootstrapping code
+		self.__writelines("@256\n")
+		self.__writelines("D=A\n")
+		self.__writelines("@SP\n")
+		self.__writelines("@M=D\n")
+		self.writeGoto("Sys.init")
+
+		# setup global counters
 		s = asmfile.split("/")
 		s = s[len(s)-1]
-		print(s)
-		self.__staticvarname = s[:-3] # Save off the root file name without extension with the period
+		self.__staticvarname = s[:-3] # Save off the root file name without extension with the period for static vars
 		self.__labelcnt = 0 # label counter for conditional statements
+
+	
 
 	def close(self):
 		self.__asmfile.close()
@@ -173,10 +181,10 @@ class CodeCommand:
 			self.__asmfile.writelines("@SP\n")		# increment the stack pointer
 			self.__asmfile.writelines("M=M+1\n")
 
-	def writeCall(self, FunctionName, localvars):
+	def writeCall(self, FunctionName, localvars, vmfile, callidx):
 		self.__asmfile.writelines("// call " + FunctionName + " " + localvars + "\n")
 
-		retLabel = FunctionName + '$ret.1'
+		retLabel = vmfile + "." + FunctionName + '$ret.' + callidx
 		self.__asmfile.writelines("@" + retLabel + "\n")
 		self.__asmfile.writelines("D=A\n")	
 		self.__asmfile.writelines("@SP\n")		# push the return address
