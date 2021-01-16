@@ -45,6 +45,7 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 		for vmfile in vmfiles:
 
 			p = Parser(dirpath + "/" + vmfile)
+			c.VMFileName = vmfile
 
 			while (True):			# begin looping through the .vm file 
 				p.advance()			# code instruction line
@@ -67,7 +68,7 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 				elif (p.commandType == C_RETURN):
 					c.writeReturn()	
 				elif (p.commandType == C_CALL):
-					c.writeCall(p.arg1, p.arg2, vmfile, '1')	# need to add code to keep track of call history.  use a dictionary to track for example {vmfile.arg1, 1}
+					c.writeCall(p.arg1, p.arg2)	
 				if (p.hasMoreCommands == False):
 					break
 		c.close()

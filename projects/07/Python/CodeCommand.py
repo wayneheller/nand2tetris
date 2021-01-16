@@ -8,18 +8,12 @@ class CodeCommand:
 	def __init__(self, asmfile):
 		#asmfile = vmfile.replace(".vm", ".asm")
 		self.__asmfile = open(asmfile, 'w')	# Open the asm file and initialize with bootstrapping code
-		self.__writelines("@256\n")
-		self.__writelines("D=A\n")
-		self.__writelines("@SP\n")
-		self.__writelines("@M=D\n")
-		self.writeGoto("Sys.init")
+		self._writeInit()
 
 		# setup global counters
-		s = asmfile.split("/")
-		s = s[len(s)-1]
-		self.__staticvarname = s[:-3] # Save off the root file name without extension with the period for static vars
 		self.__labelcnt = 0 # label counter for conditional statements
-
+		# need to add code to keep track of call history.  use a dictionary to track for example {vmfile.arg1, 1}
+		self.__dictreturnidx = {}	
 	
 
 	def close(self):
@@ -145,12 +139,24 @@ class CodeCommand:
 		self.__asmfile.writelines("@SP\n")			# increment stack pointer
 		self.__asmfile.writelines("M=M+1\n")		
 		
-		
-	def setFileName(self, Filename):
-		pass
+	
+	@property
+	def VMFileName(self):
+		return self.__vmfilename
 
-	def writeInit(self):
-		pass
+	@VMFileName.setter	
+	def VMFileName(self, vmfile):
+		self.__vmfile = vmfile
+		self.__staticvarname = vmfile[:-3] # Save off the root file name without extension with the period for static vars
+
+	def _writeInit(self):
+		self.__asmfile.writelines("@256\n")
+		self.__asmfile.writelines("D=A\n")
+		self.__asmfile.writelines("@SP\n")
+		self.__asmfile.writelines("M=D\n")
+		#self.writeGoto("Sys.init")
+		self.writeCall("Sys.init", "0")
+		
 
 	def writeLabel(self, Labelname):
 		self.__asmfile.writelines("(" + Labelname + ")\n")	
@@ -181,10 +187,17 @@ class CodeCommand:
 			self.__asmfile.writelines("@SP\n")		# increment the stack pointer
 			self.__asmfile.writelines("M=M+1\n")
 
-	def writeCall(self, FunctionName, localvars, vmfile, callidx):
+	def writeCall(self, FunctionName, localvars):
 		self.__asmfile.writelines("// call " + FunctionName + " " + localvars + "\n")
+		if (FunctionName != 'Sys.init'):
+			dictkey = self.__vmfile + "." + FunctionName
+			returnidx = self.__dictreturnidx.get(dictkey,0)
+			returnidx = returnidx + 1
+			self.__dictreturnidx.update({dictkey: returnidx})
+			retLabel = self.__vmfile + "." + FunctionName + '$ret.' + str(returnidx)
+		else:
+			retLabel = FunctionName + '$ret.1'
 
-		retLabel = vmfile + "." + FunctionName + '$ret.' + callidx
 		self.__asmfile.writelines("@" + retLabel + "\n")
 		self.__asmfile.writelines("D=A\n")	
 		self.__asmfile.writelines("@SP\n")		# push the return address
@@ -254,7 +267,7 @@ class CodeCommand:
 		self.__asmfile.writelines("D=D-A\n")
 		self.__asmfile.writelines("A=D\n")
 		self.__asmfile.writelines("D=M\n")
-		self.__asmfile.writelines("@12\n")		# Register 12 is the temporary local
+		self.__asmfile.writelines("@R13\n")		# Register 13 is the temporary local
 		self.__asmfile.writelines("M=D\n")	
 
 		# Set ARG to stack value - the return value
@@ -303,7 +316,7 @@ class CodeCommand:
 		self.__asmfile.writelines("@LCL\n")
 		self.__asmfile.writelines("M=D\n")		
 		# goto return address
-		self.__asmfile.writelines("@12\n")
+		self.__asmfile.writelines("@R13\n")
 		self.__asmfile.writelines("A=M\n")
 		self.__asmfile.writelines("0;JMP\n")
 		
