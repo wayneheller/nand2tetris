@@ -15,22 +15,33 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 
 	if (path.isdir(sys.argv[1])):
 		print('Process directory...')
+
 		#(dirpath, dirname) = os.path.split(sys.argv[1])
 		dirname = os.path.basename(os.path.normpath(sys.argv[1]))
+		if (dirname == "."):
+			dirname = os.path.basename(os.getcwd())
 		asmfile = dirname + '.asm'
+
+
 		dirpath = os.path.normpath(sys.argv[1])
+		if (dirpath == ""):
+			dirpath = os.getcwd()
+
 		vmfiles =[]
 		for file in os.listdir(sys.argv[1]):
 			if (file.endswith('.vm')):
 				vmfiles.append(file)
-		
+		init = True
 
 	elif (path.isfile(sys.argv[1])):
 		print('Process file...')
 		(dirpath, vmfile) = os.path.split(sys.argv[1])
+		if (dirpath==""):
+			dirpath = os.path.dirname(os.path.realpath(__file__))
 		#vmfiles = [os.path.basename(os.path.normpath(sys.argv[1]))]
 		vmfiles = [vmfile]
 		asmfile = vmfile.replace(".vm", ".asm")
+		init = False
 
 	else:
 		print("Not a valid file or directory")
@@ -40,7 +51,7 @@ if len(sys.argv) - 1 > 0:	# check to see if there is a .vm file to parse on the 
 	print(vmfiles)
 
 	if (asmfile != ""):
-		c = CodeCommand(dirpath + "/" + asmfile)
+		c = CodeCommand(dirpath + "/" + asmfile, init)
 
 		for vmfile in vmfiles:
 

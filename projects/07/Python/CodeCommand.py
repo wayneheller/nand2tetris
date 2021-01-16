@@ -5,10 +5,11 @@ from constants import *
 
 class CodeCommand:
 
-	def __init__(self, asmfile):
+	def __init__(self, asmfile, init):
 		#asmfile = vmfile.replace(".vm", ".asm")
 		self.__asmfile = open(asmfile, 'w')	# Open the asm file and initialize with bootstrapping code
-		self._writeInit()
+		if (init):
+			self._writeInit()
 
 		# setup global counters
 		self.__labelcnt = 0 # label counter for conditional statements
