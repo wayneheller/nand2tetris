@@ -1,0 +1,132 @@
+/**
+ * Implements the Jack Be NIMble game.
+ * This game consists of removing items from heaps
+ * The person who removes the last item from the last heap either wins or loses
+ * depending on the game type
+ * The user defines the number of heaps and the size of each heap
+ * The user also defines whether picking the last item wins or loses the game
+ * 
+ */
+
+class NIMGame {
+   field Array heaps;         // the objects in the game
+   field int numHeaps;        // the number of heaps in the game
+                        
+
+   /** Constructs a new NIM Game. */
+   constructor NIMGame new(int Aheaps, Array AheapSizes) {
+      var int i;
+      let i = 0;
+
+      let numHeaps = Aheaps;
+      let heaps = Array.new(numHeaps);
+
+      while (i < numHeaps) {
+         let heaps[i] = Heap.new(AheapSizes[i]);
+         let i = i + 1;
+      }
+      return this;
+   }
+
+   /** Disposes this game. */
+   method void dispose() {
+      var Heap heap;
+      var int i;
+      let i = 0;
+      while (i < numHeaps) {
+         let heap = heaps[i];
+         //do heaps[i].dispose();
+         do heap.dispose();
+         let i = i + 1;
+      }
+      do Memory.deAlloc(this);
+      return;
+   }
+
+   /** Runs the game: handles the user's inputs  */
+   method void play() {
+      
+     return;
+   }
+
+   method int calcNimSum() {
+      var int i, a, b;
+      var Heap heap;
+
+      let i = 1;
+      let heap = heaps[0];
+      let a = heap.getSize();
+      while (i < numHeaps) { 
+         let heap = heaps[i];
+         let b = heap.getSize();
+         let a = Utils.Xor(a, b);
+         let i = i + 1;
+      }
+      return(a);
+   }
+
+   method int findHeapToReduce() {
+      var int i, s;
+      var Heap heap;
+      var int gameNimSum, heapNimSum;
+
+      let gameNimSum = calcNimSum();
+
+      let i = 0;
+      while (i < numHeaps) {
+         let heap = heaps[i];
+         let s = heap.getSize();
+         let heapNimSum = Utils.Xor(s, gameNimSum);
+         if (heapNimSum < s) {return(i);}
+         else {let i=i+1;}
+      }
+      return(numHeaps + 1);  // returns a value to indicate that no preferred move is found, i.e. the opponent is in a winning position.
+   }
+
+   method int calcHeapReduction(int idxHeap) {
+      var int s, gameNimSum;
+      var Heap heap;
+
+      let heap = heaps[idxHeap];
+      let s = heap.getSize();
+      let gameNimSum = calcNimSum();
+
+      return(s - Utils.Xor(s, gameNimSum));
+
+   }
+
+   /** Diagnostis */
+   method void describe() {
+      var int i;
+      var int s;
+      var Heap heap;
+      var int NimSum, HeapToReduce, Reduction;
+      let i = 0;
+      do Output.moveCursor(0,0);
+      do Output.printString("Number of heaps: "); do Output.printInt(numHeaps);
+      
+      
+      while (i < numHeaps) {
+         do Output.println();
+         let heap = heaps[i];
+         let s = heap.getSize();
+         do Output.printString("The size of heap "); do Output.printInt(i); do Output.printString(" is "); do Output.printInt(s);
+         let i = i + 1;
+      }
+      let NimSum = calcNimSum();
+      do Output.println();
+      do Output.printString("The Nim Sum of all the heaps is: "); do Output.printInt(NimSum);
+      let HeapToReduce = findHeapToReduce();
+      do Output.println();
+      do Output.printString("The heap to reduce is: "); do Output.printInt(HeapToReduce);
+      let Reduction = calcHeapReduction(HeapToReduce);
+      do Output.println();
+      do Output.printString("The heap reduction is: "); do Output.printInt(Reduction);
+      let heap = heaps[HeapToReduce];
+      do heap.reduce(Reduction);
+      do Output.println();
+      do Output.printString("The new heap size is; "); do Output.printInt(heap.getSize());
+
+   return;
+   }
+}

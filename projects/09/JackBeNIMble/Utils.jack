@@ -1,0 +1,6 @@
+/** Utility functions for Jack Be NIMble Game */
+class Utils {
+    function int Xor(int a, int b) { // Xor is (a & ~b) | (b & ~a)
+    	return((a & ~b)|(b & ~a));
+    }
+}    

@@ -1,0 +1,19 @@
+/** Initializes a new Jack Be NIMble game and starts running it. */
+class Main {
+    function void main() {
+        var NIMGame game;
+        var Array heapSizes;
+
+        let heapSizes = Array.new(2);
+        let heapSizes[0] = 1;
+        let heapSizes[1] = 1;
+        //let heapSizes[2] = 5;
+
+        let game = NIMGame.new(2, heapSizes);
+
+        //do game.play();
+        do game.describe();
+        do game.dispose();
+        return;
+    }
+}
