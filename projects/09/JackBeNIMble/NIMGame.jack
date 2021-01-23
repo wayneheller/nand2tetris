@@ -9,15 +9,18 @@
  */
 
 class NIMGame {
-   field Array heaps;         // the objects in the game
+   field Array heaps;         // the collection of heap objects in the game
    field int numHeaps;        // the number of heaps in the game
+   field int NimSum;          // the NimSum of all the heaps in the game
+   field int gameType;        // 0 = taking last item wins; 1 = taking last item loses
                         
 
    /** Constructs a new NIM Game. */
-   constructor NIMGame new(int Aheaps, Array AheapSizes) {
+   constructor NIMGame new(int Aheaps, Array AheapSizes, int AgameType) {
       var int i;
       let i = 0;
 
+      let gameType = AgameType;
       let numHeaps = Aheaps;
       let heaps = Array.new(numHeaps);
 
@@ -49,7 +52,7 @@ class NIMGame {
      return;
    }
 
-   method int calcNimSum() {
+   method void calcNimSum() {
       var int i, a, b;
       var Heap heap;
 
@@ -62,45 +65,123 @@ class NIMGame {
          let a = Utils.Xor(a, b);
          let i = i + 1;
       }
-      return(a);
+      let NimSum = a;
+      return;
+   }
+
+   method boolean isNearEnd() {  // For gameType = 1, the strategy changes slightly near the end of the game
+      var int i, s;              // where end of the game means there is only 1 heap with an item count greater than 1
+      var Heap heap;
+      var int cntLrgHeaps;        // count of heaps with more than 1 item
+
+      let cntLrgHeaps = 0;
+      while (i < numHeaps) {
+         let heap = heaps[i];
+         let s = heap.getSize();
+         if (s > 1) {
+            let cntLrgHeaps = cntLrgHeaps + 1;
+         }
+         let i = i + 1;
+      }
+      return((cntLrgHeaps < 2));
+   }
+
+   method int calcHeapsRemaining() { // returns the total number of heaps with more than 0 items
+      var int i, s;
+      var int cntHeaps;
+      var Heap heap;
+
+      let cntHeaps = 0;
+      while (i < numHeaps) {
+         let heap = heaps[i];
+         let s = heap.getSize();
+         if (s > 0) {
+            let cntHeaps = cntHeaps + 1;
+         }
+         let i = i + 1;
+      }
+      return(cntHeaps);
    }
 
    method int findHeapToReduce() {
       var int i, s;
+      var int maxIdx, maxSize;
       var Heap heap;
-      var int gameNimSum, heapNimSum;
-
-      let gameNimSum = calcNimSum();
+      var int heapNimSum;
 
       let i = 0;
-      while (i < numHeaps) {
+      if ((NimSum = 0) | ((gameType = 1) & isNearEnd()))  { // The human player has the advantage and there is no clear best next move at this time
+                                                            // Strategy: Find the heap with the greatest number of items and decrement by 1
+                                                            // For gameType = 1, the strategy changes slightly near the end of the game
+                                                            // where end of the game means there is only 1 heap with an item count greater than 1
+
+         let maxIdx = 0;            // The index of the heap with the maximum size
+         let maxSize = 0;           // The size of the largest heap
+         while (i < numHeaps) {
+            let heap = heaps[i];
+            let s = heap.getSize();
+            if (s > maxSize) {
+               let maxIdx = i;
+               let maxSize = s;
+            }
+            let i = i + 1;
+         }
+         return(maxIdx);
+      }
+
+      while (i < numHeaps) {        // The computer player has the advantage and the following code will determine which heap to reduce
          let heap = heaps[i];
          let s = heap.getSize();
-         let heapNimSum = Utils.Xor(s, gameNimSum);
-         if (heapNimSum < s) {return(i);}
-         else {let i=i+1;}
+         let heapNimSum = Utils.Xor(s, NimSum);
+         if (heapNimSum < s) {
+            return(i);
+            }
+         else {
+            let i=i+1;
+            }
       }
-      return(numHeaps + 1);  // returns a value to indicate that no preferred move is found, i.e. the opponent is in a winning position.
+      return(numHeaps + 1);  // returns a value to indicate that no preferred move is found, this condition should never be met
    }
 
    method int calcHeapReduction(int idxHeap) {
-      var int s, gameNimSum;
+      var int s;
       var Heap heap;
+      var int heapsRemaining;             // The number of heaps with at least 1 item
+      var boolean oddNumHeapsRemaining;   // True if there are an odd number of heaps remaining
 
-      let heap = heaps[idxHeap];
-      let s = heap.getSize();
-      let gameNimSum = calcNimSum();
+      if (NimSum = 0) {                   // The human player has the advantage and there is no clear best next move at this time
+          return(1);                      // Strategy: Find the heap with the greatest number of items and decrement by 1
+      }
 
-      return(s - Utils.Xor(s, gameNimSum));
+      if ((gameType = 1) & isNearEnd()) {        // if there is an odd number of heaps remaining, leave one item in the heap
+                                                  // if even, remove the entire heap
+         let heapsRemaining = calcHeapsRemaining();
+         let oddNumHeapsRemaining = Utils.isOdd(heapsRemaining);
+         let heap = heaps[idxHeap];
+         let s = heap.getSize();
+         if (oddNumHeapsRemaining) {
+            return(s-1);
+         }
+         else {
+            return(s);
+         }
 
+      }
+
+      else {                              // This is the next best move to retain a winning position
+         let heap = heaps[idxHeap];
+         let s = heap.getSize();
+         return(s - Utils.Xor(s, NimSum));  // return the different between the heap size and the heap Nim sum
+      }
    }
+
 
    /** Diagnostis */
    method void describe() {
       var int i;
       var int s;
       var Heap heap;
-      var int NimSum, HeapToReduce, Reduction;
+      var int HeapToReduce, Reduction;
       let i = 0;
       do Output.moveCursor(0,0);
       do Output.printString("Number of heaps: "); do Output.printInt(numHeaps);
@@ -113,7 +194,7 @@ class NIMGame {
          do Output.printString("The size of heap "); do Output.printInt(i); do Output.printString(" is "); do Output.printInt(s);
          let i = i + 1;
       }
-      let NimSum = calcNimSum();
+      do calcNimSum();
       do Output.println();
       do Output.printString("The Nim Sum of all the heaps is: "); do Output.printInt(NimSum);
       let HeapToReduce = findHeapToReduce();

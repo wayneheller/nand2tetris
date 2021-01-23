@@ -3,4 +3,8 @@ class Utils {
     function int Xor(int a, int b) { // Xor is (a & ~b) | (b & ~a)
     	return((a & ~b)|(b & ~a));
     }
-}    
+
+    function boolean isOdd(int a) {
+    	return((a & 1) = 1); // will return true if the least significant bit is 1.
+    }
+}   

@@ -4,12 +4,12 @@ class Main {
         var NIMGame game;
         var Array heapSizes;
 
-        let heapSizes = Array.new(2);
+        let heapSizes = Array.new(3);
         let heapSizes[0] = 1;
-        let heapSizes[1] = 1;
-        //let heapSizes[2] = 5;
+        let heapSizes[1] = 2;
+        let heapSizes[2] = 3;
 
-        let game = NIMGame.new(2, heapSizes);
+        let game = NIMGame.new(3, heapSizes, 0);
 
         //do game.play();
         do game.describe();
