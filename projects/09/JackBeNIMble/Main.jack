@@ -7,6 +7,15 @@ class Main {
         var int gameType;
         var int i;
 
+        // Clear the screen
+        do Screen.clearScreen();
+
+        // Display Game Instructions
+        do UX.displayInstructions();
+
+        // Clear the screen
+        do Screen.clearScreen();
+
         // Get game setup parameters from the user
 
         // Number of Heaps

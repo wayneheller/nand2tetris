@@ -72,6 +72,9 @@ class NIMGame {
             let idxHeap = UX.getHeap(numHeaps, isError);
             let heap = heaps[idxHeap];
             let isValidHeap = ~heap.isEmpty();
+            if (~isValidHeap) {
+               do UX.displayErrHeapEmpty(idxHeap);
+            }
          }
 
          // how many items to remove
@@ -251,19 +254,31 @@ class NIMGame {
       var Heap heap;
 
       do Screen.clearScreen();
-      do Output.moveCursor(0,0);
+      do Output.moveCursor(0,25);
+      do Output.printString("Jack Be NIMble");
+      do Output.println();
+      do Output.println();
+      if (gameType = 0) {
+         do Output.printString("Taking the last item off the last heap WINS the game.");
+      }
+      else {
+         do Output.printString("Taking the last item off the last heap LOSES the game.");
+      }
+      do Output.println();
+      do Output.println();
       do Output.printString("  Heap     Size");
       do Output.println();
       do Output.printString(" ______   ______");
-
+      do Output.println();
       while (i < numHeaps) {
          do Output.println();
          let heap = heaps[i];
          let s = heap.getSize();
-         do Output.moveCursor(i+2,4); do Output.printInt(i+1); do Output.moveCursor(i+2,13);do Output.printInt(s);
+         do Output.moveCursor((2 * i) + 7, 4); do Output.printInt(i+1); do Output.moveCursor((2 * i) + 7, 13);do Output.printInt(s);
          let i = i + 1;
       }
-      do Output.println();
+      do Output.println(); do Output.println();
+
       return;
    }
 
