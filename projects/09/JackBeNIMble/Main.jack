@@ -3,16 +3,34 @@ class Main {
     function void main() {
         var NIMGame game;
         var Array heapSizes;
+        var int numHeaps;
+        var int gameType;
+        var int i;
 
-        let heapSizes = Array.new(3);
-        let heapSizes[0] = 1;
-        let heapSizes[1] = 2;
-        let heapSizes[2] = 3;
+        // Get game setup parameters from the user
 
-        let game = NIMGame.new(3, heapSizes, 0);
+        // Number of Heaps
+        let numHeaps = UX.getNumHeaps();
+        let heapSizes = Array.new(numHeaps);
 
-        //do game.play();
-        do game.describe();
+        // Size of each Heap
+        let i = 0;
+        while (i < numHeaps) {
+        	let heapSizes[i] = UX.getHeapSize(i);
+        	let i = i + 1;
+        }
+
+        // Game Type
+        let gameType = UX.getGameType();
+
+        // initialize the game with user set parameters
+        let game = NIMGame.new(numHeaps, heapSizes, gameType);
+
+        // Clear the screen
+        do Screen.clearScreen();
+
+        do game.play();
+        //do game.describe();
         do game.dispose();
         return;
     }

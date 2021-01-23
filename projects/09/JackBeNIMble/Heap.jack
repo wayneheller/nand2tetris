@@ -2,12 +2,12 @@
 class Heap {
 
    field int size;            // the size of this heap
-   field boolean isEmpty;         // True or False whether or not this heap is Empty
+   field boolean heapIsEmpty;     // True or False whether or not this heap is Empty
 
    /** Constructs a new heap. */
    constructor Heap new(int Asize) {
       let size = Asize;
-      let isEmpty = false;
+      let heapIsEmpty = false;
       return this;
    }
 
@@ -20,6 +20,9 @@ class Heap {
 
    method void reduce(int amt) {
       let size = size - amt;
+      if (size = 0) {
+         let heapIsEmpty = true;
+      }
       return;
    }
 
@@ -27,5 +30,7 @@ class Heap {
 
    method int getSize() {return size;}
 
-   method boolean isEmpty() {return isEmpty;}
+   method boolean isEmpty() {
+      return(heapIsEmpty);
+   }
 }

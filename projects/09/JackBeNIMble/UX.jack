@@ -1,0 +1,125 @@
+/** User experience functions for Jack Be NIMble Game 
+    Gets user input and does basic validation
+    Display message and graphics to the screen */
+class UX {
+
+    function int getNumHeaps() {
+    	var int numHeaps;
+    	let numHeaps = 0;
+    	while ((numHeaps < 2) | (numHeaps > 9)) {
+    		let numHeaps = Keyboard.readInt("Please enter the number of heaps (2-9): ");
+    	}
+    	
+    	return(numHeaps);
+    }
+
+    function int getHeapSize(int idxHeap) {
+    	var int heapSize;
+    	var String msg;
+    	var String s;
+    	var char c;
+
+    	let msg = "Please enter the size (2-9) of heap  : ";
+    	let s = String.new(8);									// create a new string for the integer to string conversion
+    	do s.setInt(idxHeap+1);									// convert heap index to a string
+    	let c = s.charAt(0);									// convert it again to an char
+    	do msg.setCharAt(msg.length() - 3, c);					// replace the 3 character from the end with the heap index
+    	let heapSize = 0;
+    	 while ((heapSize < 2) | (heapSize > 9)) {
+    		let heapSize = Keyboard.readInt(msg);
+    	} 
+    	return(heapSize);
+    }
+
+    function int getGameType() {
+    	var int gameType;
+
+    	do Output.printString("Game Type Descriptions:");
+    	do Output.println();
+    	do Output.printString("0 = Player removing last item off last heap WINS");
+    	do Output.println();
+    	do Output.printString("1 = Player removing last item off last heap LOSES");
+    	do Output.println();
+
+    	let gameType = 3;
+    	while ((gameType < 0) | (gameType > 1)) {
+    		let gameType = Keyboard.readInt("Please enter Game Type (0 or 1): ");
+    	}
+    	return(gameType);
+    }
+
+    function int getHeap(int numHeaps, boolean isError) {
+    	var int idxHeap;
+
+    	if (isError){
+    		do Output.printString("Error: The heap you selected is empty.  Please select another.");
+    		do Output.println();
+    	}
+    
+    	let idxHeap = numHeaps + 2;
+    	while ((idxHeap < 1) | (idxHeap > (numHeaps + 1))) {
+    		let idxHeap = Keyboard.readInt("Please the number of the heap you want to reduce: ");
+    	}
+    	return(idxHeap - 1);	// indexes are 0 based internally and 1 based for the UX
+    
+    }
+
+    function int getNumToRemove(int heapSize, int idxHeap) {
+    	var int itemsToRemove;
+    	var String msg, s;
+    	var char c;
+
+    	let msg = "Enter the number of items (1 to x) to remove from heap y: ";
+
+    	let s = String.new(8);									// create a new string for the integer to string conversion
+    	do s.setInt(idxHeap+1);									// convert heap index to a string
+    	let c = s.charAt(0);									// convert it again to an char
+    	do msg.setCharAt(msg.length() - 3, c);					// replace the 3 character from the end with the heap index
+
+    	let s = String.new(8);									// create a new string for the integer to string conversion
+    	do s.setInt(heapSize);							        // convert heap size to a string
+    	let c = s.charAt(0);									// convert it again to an char
+    	do msg.setCharAt(32, c);								// replace the x character with the heap size
+
+    	let itemsToRemove = 0;
+    	 while ((itemsToRemove < 1) | (itemsToRemove > heapSize)) {
+    		let itemsToRemove = Keyboard.readInt(msg);
+    	} 
+    	return(itemsToRemove);
+
+    }
+
+    function void displayWin() {
+    	do Output.printString("CONGRATULATIONS!  YOU WIN!!!");
+    	return;
+    }
+
+    function void displayLoss() {
+    	do Output.printString("GOOD GAME!  BUT I ABSOLUTELY CRUSHED YOU!");
+    	return;
+    }
+
+    function void displayMove(int itemsRemoved, int idxHeap) {
+    	var String msg, s;
+    	var char c;
+
+    	let msg = "I removed x items from Heap y.";
+
+    	let s = String.new(8);									// create a new string for the integer to string conversion
+    	do s.setInt(itemsRemoved);							    // convert items removed to a string
+    	let c = s.charAt(0);									// convert it again to an char
+    	do msg.setCharAt(10, c);								// replace the x character with the items removed
+
+    	let s = String.new(8);									// create a new string for the integer to string conversion
+    	do s.setInt(idxHeap+1);							        // convert items removed to a string
+    	let c = s.charAt(0);									// convert it again to an char
+    	do msg.setCharAt(msg.length() - 2, c);					// replace the x character with the items removed
+
+    	do Output.printString(msg);
+    	do Output.println();
+    	do Output.printString("Press any key to continue...");
+    	let c = Keyboard.readChar();
+
+    	return;
+    }
+}   
