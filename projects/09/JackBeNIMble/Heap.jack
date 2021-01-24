@@ -1,8 +1,13 @@
-/** Implements a graphical square. */
+// Jack Be NIMble was programmed by Wayne Heller
+// All Rights Reserved. January 2021
+// Source: https://github.com/wayneheller/nand2tetris
+
+/** Implements a heap object used by the Jack Be NIMble game*/
+
 class Heap {
 
-   field int size;            // the size of this heap
-   field boolean heapIsEmpty;     // True or False whether or not this heap is Empty
+   field int size;                  // the size of this heap
+   field boolean heapIsEmpty;       // True or False whether or not this heap is Empty
 
    /** Constructs a new heap. */
    constructor Heap new(int Asize) {

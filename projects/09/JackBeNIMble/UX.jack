@@ -1,11 +1,17 @@
+// Jack Be NIMble was programmed by Wayne Heller
+// All Rights Reserved. January 2021
+// Source: https://github.com/wayneheller/nand2tetris
+
 /** User experience functions for Jack Be NIMble Game 
     Gets user input and does basic validation
     Display message and graphics to the screen */
+
 class UX {
 
 	function void displayInstructions() {
 		var char c;
 
+		do Output.moveCursor(0,25);
 		do Output.printString("Jack Be NIMble");
 	    do Output.println();
 	    do Output.println();
@@ -13,9 +19,11 @@ class UX {
 	    do Output.println(); do Output.println();
 	    do Output.printString("* The player who removes the last item from the last heap either wins or loses depending on the game type.");
 	 	do Output.println(); do Output.println();
-	 	do Output.printString("* At the start of the game, you will be asked to define the number of heaps and the number of items in each heap.");
+	 	do Output.printString("* At the start of the game, you will be asked to define"); do Output.println();
+	 	do Output.printString("the number of heaps and the number of items in each heap.");
 	 	do Output.println(); do Output.println();
-	 	do Output.printString("* You will also define whether picking the last item wins or loses the game");
+	 	do Output.printString("* You will also define whether picking the last item wins"); do Output.println();
+	 	do Output.printString("or loses the game");
 
 		do Output.moveCursor(22,0);
 	 	do Output.printString("Press any key to continue...");
@@ -27,6 +35,7 @@ class UX {
     function int getNumHeaps() {
     	var int numHeaps;
     	let numHeaps = 0;
+    	do Output.moveCursor(0,0);
     	while ((numHeaps < 2) | (numHeaps > 6)) {
     		let numHeaps = Keyboard.readInt("Please enter the number of heaps (2-6): ");
     	}
@@ -82,7 +91,7 @@ class UX {
     	let idxHeap = numHeaps + 2;
     	while ((idxHeap < 1) | (idxHeap > (numHeaps))) {
     		do Output.moveCursor(22,0);
-    		let idxHeap = Keyboard.readInt("Please the heap you want to reduce: ");
+    		let idxHeap = Keyboard.readInt("Please enter the heap you want to reduce: ");
     	}
     	return(idxHeap - 1);	// indexes are 0 based internally and 1 based for the UX
     
@@ -131,13 +140,13 @@ class UX {
     }
 
     function void displayWin() {
-    	do Output.moveCursor(22,15);
+    	do Output.moveCursor(19,0);
     	do Output.printString("CONGRATULATIONS!  YOU WIN!!!");
     	return;
     }
 
     function void displayLoss() {
-    	do Output.moveCursor(22,15);
+    	do Output.moveCursor(19,0);
     	do Output.printString("GOOD GAME!  BUT I ABSOLUTELY CRUSHED YOU!");
     	return;
     }
@@ -158,12 +167,75 @@ class UX {
     	let c = s.charAt(0);									// convert it again to an char
     	do msg.setCharAt(msg.length() - 2, c);					// replace the x character with the items removed
 
-    	do Output.moveCursor(20,0);
+    	do Output.moveCursor(19,0);
     	do Output.printString(msg);
-    	do Output.println(); do Output.println();
-    	do Output.printString("Press any key to continue...");
+    	do Output.moveCursor(22,0);
+    	//do Output.printString("Press any key to continue...");
+    	//let c = Keyboard.readChar();
+    	do Sys.wait(4000);
+    	
+    	return;
+    }
+
+    function boolean getPlayAgain() {
+    	var char c;
+
+    	do Output.moveCursor(22,0);
+    	do Output.printString("Do you want to Play Again?  y for Yes; Any key for No: ");
     	let c = Keyboard.readChar();
 
+    	return((c = 89)); // 89 is the character code for Y.  It appears that the runtime converts characters to uppercase so y and Y return same thing.
+    	
+    }
+
+    function boolean getUsePredefined() {
+    	var char c;
+
+    	do Output.moveCursor(19,0);
+    	do Output.printString("Do you want to use a preset configuration for"); do Output.println();
+    	do Output.printString("the number of heaps, heap sizes and game type?");
+    	do Output.moveCursor(22,0);
+    	do Output.printString("Enter  y for Yes; Any key for No: ");
+    	let c = Keyboard.readChar();
+
+    	return((c = 89)); // 89 is the character code for Y.  It appears that the runtime converts characters to uppercase so y and Y return same thing.
+    }
+
+    function boolean getUseLastConfig() {
+    	var char c;
+
+    	do Output.moveCursor(19,0);
+    	do Output.printString("Do you want to use the configuration of"); do Output.println();
+    	do Output.printString("heaps, sizes and game type from the last game?");
+    	do Output.moveCursor(22,0);
+    	do Output.printString("Enter  y for Yes; Any key for No: ");
+    	let c = Keyboard.readChar();
+
+    	return((c = 89)); // 89 is the character code for Y.  It appears that the runtime converts characters to uppercase so y and Y return same thing.
+    }
+
+    function void drawTallyMark(int row, int col) {
+    	var int x1, y1;
+
+    	let y1 = 11 * row;  // roughly 256 pixils / 23 rows
+    	let x1 = 8 * col;   // 512 pixils / 64 cols
+
+    	do Screen.drawRectangle(x1, y1, x1 + 1, y1 + 16);
+
     	return;
+
+    }
+
+    function void displayCredits() {
+    	do Screen.clearScreen();
+      	do Output.moveCursor(0,25);
+      	do Output.printString("Jack Be NIMble"); do Output.println(); do Output.println();
+    	do Output.printString("For more information about the Game Theory of NIM:"); do Output.println();
+    	do Output.printString("https://en.wikipedia.org/wiki/Nim"); do Output.println(); do Output.println();do Output.println();
+    	do Output.printString("Jack Be NIMble was coded by Wayne Heller January 2021"); do Output.println();
+    	do Output.printString("Source: https://github.com/wayneheller/nand2tetris");
+
+    	return;
+
     }
 }   

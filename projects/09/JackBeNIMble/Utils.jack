@@ -1,4 +1,9 @@
-/** Utility functions for Jack Be NIMble Game */
+// Jack Be NIMble was programmed by Wayne Heller
+// All Rights Reserved. January 2021
+// Source: https://github.com/wayneheller/nand2tetris
+
+/** Utility functions used by Jack Be NIMble Game */
+
 class Utils {
     function int Xor(int a, int b) { // Xor is (a & ~b) | (b & ~a)
     	return((a & ~b)|(b & ~a));

@@ -1,3 +1,7 @@
+// Jack Be NIMble was programmed by Wayne Heller
+// All Rights Reserved. January 2021
+// Source: https://github.com/wayneheller/nand2tetris
+
 /**
  * Implements the Jack Be NIMble game.
  * This game consists of removing items from heaps
@@ -5,7 +9,6 @@
  * depending on the game type
  * The user defines the number of heaps and the size of each heap
  * The user also defines whether picking the last item wins or loses the game
- * 
  */
 
 class NIMGame {
@@ -58,6 +61,8 @@ class NIMGame {
       var boolean isError;
       var int heapSize;
       var int itemsToRemove;   // the number of items the user wants to remove from the heap
+
+      let gameOver = false;
 
       while (~gameOver) {
 
@@ -121,6 +126,7 @@ class NIMGame {
 
          // Did Computer Win or Lose on this turn?
          if (gameOver) {
+
             if (gameType = 0) {
                do UX.displayLoss();
             }
@@ -250,7 +256,8 @@ class NIMGame {
 
    /** Simple textual display of heap sizes */
    method void displayGameBoard() {
-      var int i, s;
+      var int i, s, t;
+      var int row;            // row to display heap size and tally marks
       var Heap heap;
 
       do Screen.clearScreen();
@@ -266,15 +273,22 @@ class NIMGame {
       }
       do Output.println();
       do Output.println();
-      do Output.printString("  Heap     Size");
+      do Output.printString("  Heap     Size        Tally Marks");
       do Output.println();
-      do Output.printString(" ______   ______");
+      do Output.printString(" ______   ______   ___________________");
       do Output.println();
       while (i < numHeaps) {
          do Output.println();
          let heap = heaps[i];
          let s = heap.getSize();
-         do Output.moveCursor((2 * i) + 7, 4); do Output.printInt(i+1); do Output.moveCursor((2 * i) + 7, 13);do Output.printInt(s);
+         let row = (2 * i) + 7;
+         do Output.moveCursor(row, 4); do Output.printInt(i+1); do Output.moveCursor(row, 13);do Output.printInt(s);
+         let t = 0;
+         while (t < s) {
+            do UX.drawTallyMark(row, 20 + (2 * t));
+            let t = t + 1;
+         }
+         
          let i = i + 1;
       }
       do Output.println(); do Output.println();
@@ -282,39 +296,5 @@ class NIMGame {
       return;
    }
 
-   /** Diagnostis */
-   method void describe() {
-      var int i;
-      var int s;
-      var Heap heap;
-      var int HeapToReduce, Reduction;
-      let i = 0;
-      do Output.moveCursor(0,0);
-      do Output.printString("Number of heaps: "); do Output.printInt(numHeaps);
-      
-      
-      while (i < numHeaps) {
-         do Output.println();
-         let heap = heaps[i];
-         let s = heap.getSize();
-         do Output.printString("The size of heap "); do Output.printInt(i); do Output.printString(" is "); do Output.printInt(s);
-         let i = i + 1;
-      }
-      do analyzeGame();
-      do calcNimSum();
-      do Output.println();
-      do Output.printString("The Nim Sum of all the heaps is: "); do Output.printInt(NimSum);
-      let HeapToReduce = findHeapToReduce();
-      do Output.println();
-      do Output.printString("The heap to reduce is: "); do Output.printInt(HeapToReduce);
-      let Reduction = calcHeapReduction(HeapToReduce);
-      do Output.println();
-      do Output.printString("The heap reduction is: "); do Output.printInt(Reduction);
-      let heap = heaps[HeapToReduce];
-      do heap.reduce(Reduction);
-      do Output.println();
-      do Output.printString("The new heap size is; "); do Output.printInt(heap.getSize());
-
-   return;
-   }
+   
 }
