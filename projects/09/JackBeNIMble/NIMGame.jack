@@ -17,7 +17,7 @@ class NIMGame {
    field int NimSum;          // the NimSum of all the heaps in the game
    field int gameType;        // 0 = taking last item wins; 1 = taking last item loses
    field boolean isNearEnd;   // Near end of the game means there is only 1 heap with an item count greater than 1
-   field boolean gameOver;     // All items on all heaps have been removed.
+   field boolean gameOver;    // All items on all heaps have been removed.
    field int nonZeroHeaps;    // the count of heaps with at least 1 item in them
    field int idxLrgHeap;      // the index of the heap with the most items.  Ties go to the lowest index number.
                         
@@ -49,6 +49,7 @@ class NIMGame {
          do heap.dispose();
          let i = i + 1;
       }
+      do heaps.dispose();
       do Memory.deAlloc(this);
       return;
    }
@@ -72,15 +73,17 @@ class NIMGame {
          // Request User Input
          // Which heap to reduce
          let isValidHeap = false;
-         let isError = false;
          while (~isValidHeap) {
-            let idxHeap = UX.getHeap(numHeaps, isError);
+            let idxHeap = UX.getHeap(numHeaps);
             let heap = heaps[idxHeap];
             let isValidHeap = ~heap.isEmpty();
             if (~isValidHeap) {
                do UX.displayErrHeapEmpty(idxHeap);
             }
          }
+
+         // clear any error messages
+         do UX.clearErrHeapEmpty();
 
          // how many items to remove
          let heapSize = heap.getSize();
@@ -240,7 +243,13 @@ class NIMGame {
          let heap = heaps[idxHeap];
          let s = heap.getSize();
          if (oddNumHeapsRemaining) {
-            return(s-1);
+            if (s = 1) {
+               return(s);
+            }
+            else {
+               return(s-1);
+            }
+            
          }
          else {
             return(s);
@@ -259,6 +268,7 @@ class NIMGame {
       var int i, s, t;
       var int row;            // row to display heap size and tally marks
       var Heap heap;
+      var String msg;
 
       do Screen.clearScreen();
       do Output.moveCursor(0,25);
@@ -266,16 +276,20 @@ class NIMGame {
       do Output.println();
       do Output.println();
       if (gameType = 0) {
-         do Output.printString("Taking the last item off the last heap WINS the game.");
+         let msg = "Taking the last item off the last heap WINS the game.";
+         do Output.printString(msg);
       }
       else {
-         do Output.printString("Taking the last item off the last heap LOSES the game.");
+         let msg = "Taking the last item off the last heap LOSES the game.";
+         do Output.printString(msg);
       }
       do Output.println();
       do Output.println();
-      do Output.printString("  Heap     Size        Tally Marks");
+      let msg = "  Heap     Size        Tally Marks";
+      do Output.printString(msg);
       do Output.println();
-      do Output.printString(" ______   ______   ___________________");
+      let msg = " ______   ______   ___________________";
+      do Output.printString(msg);
       do Output.println();
       while (i < numHeaps) {
          do Output.println();
@@ -292,6 +306,7 @@ class NIMGame {
          let i = i + 1;
       }
       do Output.println(); do Output.println();
+      do msg.dispose();
 
       return;
    }

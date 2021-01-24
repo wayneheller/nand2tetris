@@ -5,11 +5,11 @@
 /** Utility functions used by Jack Be NIMble Game */
 
 class Utils {
-    function int Xor(int a, int b) { // Xor is (a & ~b) | (b & ~a)
+    function int Xor(int a, int b) { 	// Xor = (a & ~b) | (b & ~a)
     	return((a & ~b)|(b & ~a));
     }
 
     function boolean isOdd(int a) {
-    	return((a & 1) = 1); // will return true if the least significant bit is 1.
+    	return((a & 1) = 1); 			// will return true if the least significant bit is 1.
     }
 }   
