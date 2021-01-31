@@ -44,11 +44,11 @@ if len(sys.argv) - 1 > 0:
 
 		for f in jackfiles:
 
-			jt = JackTokenizer(dirpath + "/" + f) #initialize the Tokenizer
+			jt = JackTokenizer(dirpath + "/" + f, True) #initialize the Tokenizer
 			
 
 			while (jt.hasMoreTokens()):			# begin looping through the .jack file 
 				jt.advance()					# process next token
-				print(jt.tokenType)
+				#print(jt.tokenType)
 				
 		

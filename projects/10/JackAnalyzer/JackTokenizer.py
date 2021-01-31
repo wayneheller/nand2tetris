@@ -16,15 +16,24 @@ from Constants import *
 
 class JackTokenizer:
 
-	def __init__(self, jackfile):
+	def __init__(self, jackfile, emitXML):
 		self.__jackfile = open(jackfile, 'r')
 		self.__currentToken = None
 		self.__nextTokens = []
 		self._resetProperties
+		self.__emitXML = emitXML
+
+		if emitXML:
+			xmlFileName = jackfile[:-5] + "T_.xml"
+			self.__xmlfile = open(xmlFileName, 'w')
+			self.__xmlfile.writelines("<tokens>\n")
 
 		
 	def __del__(self):
 		self.__jackfile.close()
+		if self.__emitXML:
+			self.__xmlfile.writelines("</tokens>\n")
+			self.__xmlfile.close()
 
 	def advance(self):
 		#print(self.__nextTokens)
@@ -32,9 +41,33 @@ class JackTokenizer:
 		#print(self.__currentToken)
 		self._resetProperties()						# sets the current properties to None
 		self._tokenType = self.__currentToken		# sets the  properties for the current token
+		if self.__emitXML:
+			self._writeXML()
 
 
+	def _writeXML(self):
+		if self.tokenType == C_KEYWORD:
+			self.__xmlfile.writelines("<keyword> " + self._keyword + " </keyword>\n")
+			return
+		if self.tokenType == C_SYMBOL:
+			self.__xmlfile.writelines("<symbol> " + self._escapeSymbol(self._symbol) + " </symbol>\n")
+			return	
+		if self.tokenType == C_LITERAL_STRING:
+			self.__xmlfile.writelines("<stringConstant> " + self._stringVal + " </stringConstant>\n")
+			return
+		if self.tokenType == C_INTEGER:
+			self.__xmlfile.writelines("<integerConstant> " + self._intVal + " </integerConstant>\n")
+			return
+		if self.tokenType == C_IDENTIFIER:
+			self.__xmlfile.writelines("<identifier> " + self._identifier + " </identifier>\n")
+			return	
 	
+	# Get the escape code for the xml file if one exists, else return the symbol
+	def _escapeSymbol(self, sym):
+		 return(switcherSymbol.get(sym, sym))
+		 
+
+
 	def hasMoreTokens(self):
 
 		
@@ -69,64 +102,64 @@ class JackTokenizer:
 		token = ""
 		i = 0
 		while i < len(s):
-			
-			token = token + s[i]
-			#print(token,i)
-			
-			if token in keywords:					# is the token a keyword?  Doesn't handle the case where a keyword is part of an identifier, e.g trueVal
-				print("Tokenizing keyword", token)
-				self.__nextTokens.append(token)
-				token = ""
 
-			elif token in symbols:
-				if token != '/':
-					print("Tokenizing symbol", token)
+			if s[i] != " ":
+				token = token + s[i]
+			
+				if token in keywords:					# is the token a keyword?  Doesn't handle the case where a keyword is part of an identifier, e.g trueVal
+					print("Tokenizing keyword", token)
 					self.__nextTokens.append(token)
 					token = ""
-				else:
-					print("Tokenizing fwd slash /")
-					if i < len(s) - 1:		# There are more characters after the slash
-						if s[i+1] == '/': 		# The start of an end of line comment
-							print("Processing eol comment")
-							break
-						elif s[i+1:i+3] == '**':		# The start of an inline comment
-							print("Processing inline comment, i=", i)
-							i = i + s[i:].index("*/") + 2	# find the end of the inline comment and advance to that position /***/
-							print("Processing inline comment, new value for i=", i)
-							token =""
+
+				elif token in symbols:
+					if token != '/':
+						print("Tokenizing symbol", token)
+						self.__nextTokens.append(token)
+						token = ""
+					else:
+						print("Tokenizing fwd slash /")
+						if i < len(s) - 1:		# There are more characters after the slash
+							if s[i+1] == '/': 		# The start of an end of line comment
+								print("Processing eol comment")
+								break
+							elif s[i+1:i+3] == '**':		# The start of an inline comment
+								print("Processing inline comment, i=", i)
+								i = i + s[i:].index("*/") + 2	# find the end of the inline comment and advance to that position /***/
+								print("Processing inline comment, new value for i=", i)
+								token =""
+							else:
+								print("Tokenizing division symbol, token")
+								self.__nextTokens.append(token) # this is the symbol for division
+								token = ""
 						else:
-							print("Tokenizing division symbol, token")
-							self.__nextTokens.append(token) # this is the symbol for division
+							token = ""
+							print("Forward slash / at end of line, ERROR")
+				elif token.isnumeric():
+					if i < len(s) - 1:			# There are more characters on the line
+						if not(s[i+1].isnumeric()):		# No more digits left
+							print("Tokenizing integer", token)
+							self.__nextTokens.append(token) 
+							token = ""	
+					else:
+						token = ""
+						print("integer at the end of line, ERROR")
+				elif token == '"':					# the beginning of a literal string
+					j = i + 1 + s[i+1:].index('"')			# the end of the string
+					print("Tokenizing literal", s[i:j+1])
+					self.__nextTokens.append(s[i:j+1]) # including quotes that will be stripped out later
+					i = j 
+					token = ""
+				else:								# this is an identifier
+					if i < len(s) - 1:			# There are more characters on the line
+						if not(s[i+1].isalnum() and not((s[i+1] == "_"))): 
+							if not token.strip() == "":
+								print("Tokenizing identifier", token)
+								self.__nextTokens.append(token) 
 							token = ""
 					else:
 						token = ""
-						print("Forward slash / at end of line, ERROR")
-			elif token.isnumeric():
-				if i < len(s) - 1:			# There are more characters on the line
-					if not(s[i+1].isnumeric()):		# No more digits left
-						print("Tokenizing integer", token)
-						self.__nextTokens.append(token) 
-						token = ""	
-				else:
-					token = ""
-					print("integer at the end of line, ERROR")
-			elif token == '"':					# the beginning of a literal string
-				j = i + s[i+1:].index('"')			# the end of the string
-				print("Tokenizing literal", s[i:j+1])
-				self.__nextTokens.append(s[i:j+1]) # including quotes that will be stripped out later
-				i = j + 1
-				token = ""
-			else:								# this is an identifier
-				if i < len(s) - 1:			# There are more characters on the line
-					if not(s[i+1].isalnum() and not((s[i+1] == "_"))): 
-						if not token.strip() == "":
-							print("Tokenizing identifier", token)
-							self.__nextTokens.append(token) 
-						token = ""
-				else:
-					token = ""
-					print("identifier at the end of line, ERROR")
-		
+						print("identifier at the end of line, ERROR")
+			
 
 			i = i + 1
 
@@ -158,14 +191,16 @@ class JackTokenizer:
 			self._symbol = token
 			return
 
-		if token.isnumeric:
+		if token.isnumeric():
 			self.__tokenType = C_INTEGER
 			self._intVal = token
 			return
 
 		if token[0] == '"':
 			self.__tokenType = C_LITERAL_STRING
+			print("The String Val is:", token,"<endtoken>")
 			self._stringVal = token[1:-1]		# strip out the quotes from the token
+			print("The String Val is:", self._stringVal,"<endtoken>")
 			return
 
 		self.__tokenType = C_IDENTIFIER
@@ -210,6 +245,7 @@ class JackTokenizer:
 
 	@stringVal.setter
 	def _stringVal(self, s):
+		print("Setting stringVal to:", s)
 		self.__stringVal = s
 
 		    
