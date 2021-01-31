@@ -16,6 +16,8 @@ from Constants import *
 
 class JackTokenizer:
 
+	multilineComment = False # if True, we are in the middle of parsing a multi line comment /** one or more lines of text */
+
 	def __init__(self, jackfile, emitXML):
 		self.__jackfile = open(jackfile, 'r')
 		self.__currentToken = None
@@ -30,6 +32,7 @@ class JackTokenizer:
 
 		
 	def __del__(self):
+		print("Closing JackTokenizer...")
 		self.__jackfile.close()
 		if self.__emitXML:
 			self.__xmlfile.writelines("</tokens>\n")
@@ -79,13 +82,12 @@ class JackTokenizer:
 			return(False)
 		
 		elif (s == '\n'):						# test whether new line is \n which is blank
-			self.hasMoreTokens()
-			return(True)
+			return(self.hasMoreTokens())
 
 		else:
 			self._parseNextLine(s)
 			if len(self.__nextTokens) == 0:
-				print("Calling hasMoreTokens recursively for full line comment")
+				#print("Calling hasMoreTokens recursively for full line comment")
 				return(self.hasMoreTokens())		# if we've hit a full line comment, need to call recursively
 			else:
 				return(True)
@@ -104,7 +106,10 @@ class JackTokenizer:
 		while i < len(s):
 
 			if s[i] != " ":
-				token = token + s[i]
+				if not JackTokenizer.multilineComment:
+					token = token + s[i]
+				else:
+					token = "/**"
 			
 				if token in keywords:					# is the token a keyword?  Doesn't handle the case where a keyword is part of an identifier, e.g trueVal
 					print("Tokenizing keyword", token)
@@ -112,21 +117,29 @@ class JackTokenizer:
 					token = ""
 
 				elif token in symbols:
-					if token != '/':
+					if token != '/' and token != "/**":
 						print("Tokenizing symbol", token)
 						self.__nextTokens.append(token)
 						token = ""
 					else:
-						print("Tokenizing fwd slash /")
+						print("Tokenizing, token")
 						if i < len(s) - 1:		# There are more characters after the slash
-							if s[i+1] == '/': 		# The start of an end of line comment
+							if s[i+1] == '/' and not(JackTokenizer.multilineComment): 		# The start of an end of line comment
 								print("Processing eol comment")
 								break
-							elif s[i+1:i+3] == '**':		# The start of an inline comment
-								print("Processing inline comment, i=", i)
-								i = i + s[i:].index("*/") + 2	# find the end of the inline comment and advance to that position /***/
-								print("Processing inline comment, new value for i=", i)
-								token =""
+							elif s[i+1:i+3] == '**' or JackTokenizer.multilineComment:			# The start or continuation of a multiline comment
+								print("Processing block comment, i=", i)
+								try:
+									j = s[i:].index("*/") 
+									i = i + j + 2				# find the end of the multiline comment and advance to that position /***/
+									print("Processing block comment, new value for i=", i)
+									token =""
+									JackTokenizer.multilineComment = False
+								except ValueError:				# if the end is not on this line, set a static variable and move to next line
+									print("Processing block comment, end of comment not found.")
+									JackTokenizer.multilineComment = True
+									i = len(s) # move to the next line until the */ is found
+								
 							else:
 								print("Tokenizing division symbol, token")
 								self.__nextTokens.append(token) # this is the symbol for division
@@ -162,6 +175,7 @@ class JackTokenizer:
 			
 
 			i = i + 1
+		return	
 
 	def _resetProperties(self):
 		self.__tokenType = None
