@@ -2,9 +2,7 @@ import sys
 import os
 from os import path
 
-# from constants import *
-from JackTokenizer import JackTokenizer
-
+from CompilationEngine import CompilationEngine
 
 if len(sys.argv) - 1 > 0:	
 	
@@ -45,12 +43,6 @@ if len(sys.argv) - 1 > 0:
 		for f in jackfiles:
 			print("Procesing file:", f)
 
-			jt = JackTokenizer(dirpath + "/" + f, True) #initialize the Tokenizer
-			
-
-			while (jt.hasMoreTokens()):			# begin looping through the .jack file 
-				jt.advance()					# process next token
-				#print(jt.tokenType)
-			
-			jt = None	
+			ce = CompilationEngine(dirpath + "/" + f) 		
+			ce = None	
 		
