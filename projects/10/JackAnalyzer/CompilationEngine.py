@@ -71,7 +71,6 @@ class CompilationEngine:
 		getSubroutineTypeNext = True
 		getSubroutineNameNext = False
 		getParameterListNext = False
-		getClosingParenNext = False
 		getSubroutineBodyNext = False
 		self.writeXML("<subroutineDec>")
 		self.incTabLevel()
@@ -82,22 +81,28 @@ class CompilationEngine:
 				self.writeXML(self.tokenizer.tokenXML)
 				getSubroutineTypeNext = False
 				getSubroutineNameNext = True
+
 			elif getSubroutineNameNext:
 				self.writeXML(self.tokenizer.tokenXML)
 				getSubroutineNameNext = False
 				getOpeningParenNext = True
+
 			elif getOpeningParenNext:
-				self.writeXML(self.tokenizer.tokenXML)
-				getOpeningParenNext = False
-				getParameterListNext = True
+				if self.tokenizer.currentToken == "(":
+					self.writeXML(self.tokenizer.tokenXML)
+					getParameterListNext = True
+					getOpeningParenNext = False
+				else:
+					self.errorMsg("compileSubroutineDec", "(", self.tokenizer.currentToken)
+				
 			elif getParameterListNext:
-				self.compileParameterList()
+				# test for whether there is a parameter List
+				if self.tokenizer.currentToken != ")":
+					self.compileParameterList()
+				self.writeXML(self.tokenizer.tokenXML)  # closing paren )
 				getParameterListNext = False
-				getClosingParenNext = True
-			elif getClosingParenNext:
-				self.writeXML(self.tokenizer.tokenXML)
-				getClosingParenNext = False
 				getSubroutineBodyNext = True
+				
 			elif getSubroutineBodyNext:
 				self.compileSubroutineBody()
 				getSubroutineBodyNext = False
@@ -107,20 +112,137 @@ class CompilationEngine:
 		self.writeXML("</subroutineDec>")
 		return
 
+	# Parameter List Grammar ( <type> <var-name> (',' <type> <var-name>)* )?
 	def compileParameterList(self):
-		pass
+		self.writeXML("<parameterList>")
+		self.incTabLevel()
+		self.writeXML(self.tokenizer.tokenXML)	
+		while (self.tokenizer.hasMoreTokens()):		
+			self.tokenizer.advance()
+			self.writeXML(self.tokenizer.tokenXML)
+			if self.tokenizer.currentToken == ")":
+				break
+		self.decTabLevel()
+		self.writeXML("</parameterList>")
+		return
 
+	# subroutine Body Grammar; <subroutine-body> '{' <var-dec>* <statements> '}'
 	def compileSubroutineBody(self):
-		pass
+		self.writeXML("<subroutineBody>")
+		self.incTabLevel()
+		self.writeXML(self.tokenizer.tokenXML)		# {
+		getVarDecNext = True
+		getStatementsNext = False
+		while (self.tokenizer.hasMoreTokens()):		
+			self.tokenizer.advance()
+			if getVarDecNext:
+				if self.tokenizer.currentToken == "var":
+					self.compileClassVarDec()
+				getVarDecNext = False
+				getStatementsNext = True
+			if getStatementsNext == True:
+				self.compileStatements()
+				self.writeXML(self.tokenizer.tokenXML) # }
+				break
 
+		self.decTabLevel()
+		self.writeXML("</subroutineDec>")
+		return
+
+	# Var Dec Grammar; 'var' <type> <var-name> (',' <var-name>)* ';'
 	def compileVarDec(self):
-		pass
+		self.writeXML("<varDec>")
+		self.incTabLevel()
+		self.writeXML(self.tokenizer.tokenXML)	
+		while (self.tokenizer.hasMoreTokens()):		
+			self.tokenizer.advance()
+			self.writeXML(self.tokenizer.tokenXML)
+			if self.tokenizer.currentToken == ";":
+				break
+		self.decTabLevel()
+		self.writeXML("</varDec>")
 
+	# statement Grammar: (<let-statement> | <if-statement> | <while-statement> | <do-statement> | <return-statement>)*
 	def compileStatements(self):
-		pass
+		self.writeXML("<statements>")
+		self.incTabLevel()
+		while (self.tokenizer.hasMoreTokens()):		
+			self.tokenizer.advance()
+			if self.tokenizer.currentToken == "let":
+				self.compileLet()
+			elif self.tokenizer.currentToken == "if":
+				self.compileIf()
+			elif self.tokenizer.currentToken == "while":
+				self.compileWhile()
+			elif self.tokenizer.currentToken == "do":
+				self.compileDo()
+			elif self.tokenizer.currentToken == "return":
+				self.compileReturn()
+			elif self.tokenizer.currentToken == "}":
+				break
 
+		self.decTabLevel()
+		self.writeXML("</statements>")
+
+	# let statement grammar; 'let' <var-name> ('[' <expression> ']')? '=' <expression> ';'
 	def compileLet(self):
-		pass
+		self.writeXML("<letStatement>")
+		self.incTabLevel()
+		self.writeXML(self.tokenizer.tokenXML)	 # let
+
+		getVarNameNext = True
+		getVarExpressionNext = False
+		getClosedSquareBracketNext = False
+		getEqualSignNext = False
+		getExpressionNext = False
+		getSemicolonNext = False
+
+		while (self.tokenizer.hasMoreTokens()):		
+			self.tokenizer.advance()
+			if getVarNameNext:
+				#print("varName", self.tokenizer.currentToken)
+				self.writeXML(self.tokenizer.tokenXML)
+				getVarNameNext = False
+				getVarExpressionNext = True
+			elif getVarExpressionNext:
+				if self.tokenizer.currentToken == "[":
+					self.writeXML(self.tokenizer.tokenXML)
+					self.compileExpression()
+					self.writeXML(self.tokenizer.tokenXML) # ]
+					getEqualSignNext = True
+
+				elif self.tokenizer.currentToken == "=":
+					#print("Equal", self.tokenizer.currentToken)
+					self.writeXML(self.tokenizer.tokenXML)
+					getExpressionNext = True
+					getEqualSignNext = False
+
+				getVarExpressionNext = False
+				
+			elif getEqualSignNext:
+				if self.tokenizer.currentToken == "=":
+					print("=", self.tokenizer.currentToken)
+					self.writeXML(self.tokenizer.tokenXML)
+					getExpressionNext = True
+					getEqualSignNext = False
+				else:
+					self.errorMsg("compileLet", "=", self.tokenizer.currentToken)
+
+			elif getExpressionNext:
+				self.compileExpression()
+				getExpressionNext = False
+				getSemicolonNext = True
+
+			elif getSemicolonNext:
+				if self.tokenizer.currentToken == ";":
+					self.writeXML(self.tokenizer.tokenXML)
+					#print("break")
+					break
+				else:
+					self.errorMsg("compileLet", ";", self.tokenizer.currentToken)
+		
+		self.decTabLevel()
+		self.writeXML("</letStatement>")
 
 	def compileIf(self):
 		pass
@@ -133,6 +255,9 @@ class CompilationEngine:
 
 	def compileReturn(self):
 		pass
+
+	def compileExpression(self):
+		return
 
 	def compileTerms(self):
 		pass
