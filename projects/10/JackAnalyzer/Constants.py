@@ -10,6 +10,10 @@ keywords = ['class' , 'constructor' , 'function' , 'method' ,   'field' , 'stati
 
 symbols = ['{' , '}' , '(' , ')' , '[' , ']' , '.' , ',' , ';' ,  '+' , '-' , '*' , '/' , '&' , '|' , '<' , '>' , '=' , '~', '/**']
 
+op = ['+' , '-' , '*' , '/' , '&' , '|' , '<' , '>' , '=']
+
+unaryop = [ '~', '-']
+
 switcherSymbol = {
 	">" : "&gt;",
 	"<" : "&lt;",
