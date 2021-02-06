@@ -44,3 +44,14 @@ Chapters 7 & 8:
 * The bootstrapping code and when and how to implement it is another complication.  Please note that you CALL the bootstrap code not GOTO it.  Also, you only invoke it when processing a directory and not when processing a file.  
 * There is a particular when to format the return labels in the slides that requires you to track the number of times a function has been called which makes sense, you don't want to return to the same point in the code if a function is called twice. I used a dictionary object to implement that.  I used the return label as the key and the times it hs been called as the value.
 * The code I turned in is not optimized. There are lots of opportunity to simplify and create utility functions to encapsulated repeated assembly code sequences such as increment/decrement stack pointer.
+
+Chapter 9:
+* The goal of this project is to build an application in the Jack language.  I chose to build a NIM game.  
+* Deallocating stack / heap space is important.  Literal strings are never deallocated.  I experienced overflow errors because of this fact.  ended up storing all my strings in variables and deallocating them at the end of each function.  The same applies for Array variables.  deallocate at the end of each function.
+* Pretty proud of the application I built.  Excercised all the aspects of the language.
+
+Chapter 10:
+* The goal is to parse a Jack file into an xml file tagged according to the grammar of the Jack language.  
+* Difficult assignment.  Took many hours to complete.  Generating the xml file is just a validation.  The goal is to build a state model for each token.
+* Parsing the multiline comments was a challenge.  Also, do not recommend separating the lines of commands by spaces.  Rather parse by each character.
+* Approach taken is to parse each line and build a "stack" of tokens.  Then pop each token for processing.  I maintained a reference to both the current token and the next token
