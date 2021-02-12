@@ -1,6 +1,7 @@
 # Handles the compilation of tokens from .jack files into xml in the grammar of the Jack language
 
 from JackTokenizer import JackTokenizer
+from SymbolTable import SymbolTable
 from Constants import *
 
 class CompilationEngine:
@@ -8,9 +9,11 @@ class CompilationEngine:
 	def __init__(self, jackfile):
 
 		self.tokenizer = JackTokenizer(jackfile, True) #initialize the Tokenizer
-		xmlFileName = jackfile[:-5] + ".xml"
+		xmlFileName = jackfile[:-5] + "_.xml"
 		self.__xmlfile = open(xmlFileName, 'w')
 		self.__tabLevel = 0
+		self.__clsSymTable = SymbolTable()		# symbol table for class level variables
+		self.__subSymTable = SymbolTable()		# symbol table for subroutine level variables
 		self.compileClass()
 			
 	def __del__(self):
@@ -58,16 +61,38 @@ class CompilationEngine:
 		self.decTabLevel()
 		self.writeXML("</class>")
 
-	#  classVarDec grmmar ('static' | 'field') <type> <var-name> (',' <var-name>)* ';'
+	#  classVarDec grammar ('static' | 'field') <type> <var-name> (',' <var-name>)* ';'
 	def compileClassVarDec(self):
 		self.writeXML("<classVarDec>")
 		self.incTabLevel()
+		
 		self.writeXML(self.tokenizer.tokenXML)	# field or static
-		while (self.tokenizer.hasMoreTokens()):		
+		symKind = self.tokenizer.currentToken
+		self.tokenizer.advance()
+
+		self.writeXML(self.tokenizer.tokenXML) # <type>
+		symType = self.tokenizer.currentToken
+		self.tokenizer.advance()
+
+		self.writeXML(self.tokenizer.tokenXML) # <varname>
+		symName = self.tokenizer.currentToken
+		self.__clsSymTable.define(symName, symType, symKind)
+		self.incTabLevel()
+		self.writeSymTableXML(symName, self.__clsSymTable)
+		self.decTabLevel()
+
+		self.tokenizer.advance()
+
+		while (self.tokenizer.currentToken == ","):
 			self.tokenizer.advance()
-			self.writeXML(self.tokenizer.tokenXML)
-			if self.tokenizer.currentToken == ";":
-				break
+			self.writeXML(self.tokenizer.tokenXML) # <varname>
+			symName = self.tokenizer.currentToken
+			self.__clsSymTable.define(symName, symType, symKind)
+			self.incTabLevel()
+			self.writeSymTableXML(symName, self.__clsSymTable)
+			self.decTabLevel()
+			self.tokenizer.advance()
+			
 		self.decTabLevel()
 		self.writeXML("</classVarDec>")
 		return
@@ -141,6 +166,8 @@ class CompilationEngine:
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# {
 
+		self.__subSymTable.startSubroutine()		# start with a clean symbol table
+
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
 			#print("compileSubroutineBody", self.tokenizer.nextToken)
@@ -161,12 +188,34 @@ class CompilationEngine:
 	def compileVarDec(self):
 		self.writeXML("<varDec>")
 		self.incTabLevel()
-		self.writeXML(self.tokenizer.tokenXML)	
-		while (self.tokenizer.hasMoreTokens()):		
+
+		self.writeXML(self.tokenizer.tokenXML)	# var
+		symKind = "local"
+		self.tokenizer.advance()
+
+		self.writeXML(self.tokenizer.tokenXML) # <type>
+		symType = self.tokenizer.currentToken
+		self.tokenizer.advance()
+
+		self.writeXML(self.tokenizer.tokenXML) # <varname>
+		symName = self.tokenizer.currentToken
+		self.__subSymTable.define(symName, symType, symKind)
+		self.incTabLevel()
+		self.writeSymTableXML(symName, self.__subSymTable)
+		self.decTabLevel()
+
+		self.tokenizer.advance()
+
+		while (self.tokenizer.currentToken == ","):
 			self.tokenizer.advance()
-			self.writeXML(self.tokenizer.tokenXML)
-			if self.tokenizer.currentToken == ";":
-				break
+			self.writeXML(self.tokenizer.tokenXML) # <varname>
+			symName = self.tokenizer.currentToken
+			self.__subSymTable.define(symName, symType, symKind)
+			self.incTabLevel()
+			self.writeSymTableXML(symName, self.__subSymTable)
+			self.decTabLevel()
+			self.tokenizer.advance()
+
 		self.decTabLevel()
 		self.writeXML("</varDec>")
 
@@ -517,6 +566,17 @@ class CompilationEngine:
 	def writeXML(self, s):
 		t = "\t" * self.__tabLevel
 		self.__xmlfile.writelines(t + s + "\n")
+		return
+
+	def writeSymTableXML(self, symName, symTable):
+		s = "<symbolName> " + symName + " </symbolName>"
+		self.writeXML(s)
+		s = "<symbolType> " + symTable.TypeOf(symName) + " </symbolType>"
+		self.writeXML(s) 
+		s = "<symbolKind> " + symTable.KindOf(symName) + " </symbolKind>"
+		self.writeXML(s) 
+		s = "<symbolIndex> " + str(symTable.IndexOf(symName)) + " </symbolIndex>"
+		self.writeXML(s) 
 		return
 
 	def incTabLevel(self):

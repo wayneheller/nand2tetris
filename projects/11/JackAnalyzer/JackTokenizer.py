@@ -15,13 +15,13 @@ class JackTokenizer:
 		self.__emitXML = emitXML
 
 		if emitXML:
-			xmlFileName = jackfile[:-5] + "T.xml"
+			xmlFileName = jackfile[:-5] + "T_.xml"
 			self.__xmlfile = open(xmlFileName, 'w')
 			self.__xmlfile.writelines("<tokens>\n")
 
 		
 	def __del__(self):
-		# print("Closing JackTokenizer...")
+		print("Closing JackTokenizer...")
 		self.__jackfile.close()
 		if self.__emitXML:
 			self.__xmlfile.writelines("</tokens>\n")

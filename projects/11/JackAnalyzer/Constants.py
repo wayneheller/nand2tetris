@@ -6,10 +6,6 @@ C_INTEGER = 3
 C_LITERAL_STRING = 4
 C_IDENTIFIER = 5
 
-C_STATIC = 1
-C_FIELD = 2
-C_ARG = 3
-C_VAR = 4
 
 keywords = ['class' , 'constructor' , 'function' , 'method' ,   'field' , 'static' , 'var' , 'int' , 'char' , 'boolean' , 'void' , 'true' , 'false' , 'null' , 'this' , 'let' , 'do' , 'if' , 'else' , 'while' , 'return']
 
