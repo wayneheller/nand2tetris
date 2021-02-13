@@ -2,6 +2,7 @@
 
 from JackTokenizer import JackTokenizer
 from SymbolTable import SymbolTable
+from VMWriter import VMWriter
 from Constants import *
 
 class CompilationEngine:
@@ -11,13 +12,19 @@ class CompilationEngine:
 		self.tokenizer = JackTokenizer(jackfile, True) #initialize the Tokenizer
 		xmlFileName = jackfile[:-5] + "_.xml"
 		self.__xmlfile = open(xmlFileName, 'w')
+
+		vmFileName  = jackfile[:-5] + "_.vm"
+		self.vmWriter = VMWriter(vmFileName)
+		
 		self.__tabLevel = 0
 		self.__clsSymTable = SymbolTable()		# symbol table for class level variables
 		self.__subSymTable = SymbolTable()		# symbol table for subroutine level variables
+		self.__className = ""					# need to save the class name for method paramter this
 		self.compileClass()
 			
 	def __del__(self):
 		print("Closing CompilationEngine...")
+		self.__xmlfile.close()
 		self.tokenizer = None
 
 	# these rules do not a compile method:
@@ -37,6 +44,7 @@ class CompilationEngine:
 				getClassNameNext = True
 			elif getClassNameNext:
 				self.writeXML(self.tokenizer.tokenXML)
+				self.__className = self.tokenizer.currentToken # Save class name for inclusion in symbol table for methods.
 				getClassNameNext = False
 				getCurlyOpenBracket = True
 			elif getCurlyOpenBracket:
@@ -102,11 +110,12 @@ class CompilationEngine:
 		getSubroutineTypeNext = True
 		getSubroutineNameNext = False
 		getOpeningParenNext = False
-		getClosingParenNext = False
+		#getClosingParenNext = False
 		getSubroutineBodyNext = False
 		self.writeXML("<subroutineDec>")
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# ('constructor' | 'function' | 'method')
+		subroutineType = self.tokenizer.currentToken	# save the type so that it can be passed to Parameter List, methods require special handling
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
 			if getSubroutineTypeNext:
@@ -116,28 +125,30 @@ class CompilationEngine:
 
 			elif getSubroutineNameNext:
 				self.writeXML(self.tokenizer.tokenXML)
+				subroutineName = self.tokenizer.currentToken
 				getSubroutineNameNext = False
 				getOpeningParenNext = True
 
 			elif getOpeningParenNext:
 				if self.tokenizer.currentToken == "(":
 					self.writeXML(self.tokenizer.tokenXML)
-					self.compileParameterList()
-					getClosingParenNext = True
+					self.compileParameterList(subroutineType)
+					self.writeXML(self.tokenizer.tokenXML) # ")"
+					getSubroutineBodyNext = True
 					getOpeningParenNext = False
 				else:
 					self.errorMsg("compileSubroutineDec", "(", self.tokenizer.currentToken)
 				
-			elif getClosingParenNext:
-				if self.tokenizer.currentToken == ")":
-					self.writeXML(self.tokenizer.tokenXML)
-					getClosingParenNext = False
-					getSubroutineBodyNext = True
-				else:
-					self.errorMsg("compileSubroutineDec", ")", self.tokenizer.currentToken)
+			#elif getClosingParenNext:
+			#	if self.tokenizer.currentToken == ")":
+			#		self.writeXML(self.tokenizer.tokenXML)
+			#		getClosingParenNext = False
+			#		getSubroutineBodyNext = True
+			#	else:
+			#		self.errorMsg("compileSubroutineDec", ")", self.tokenizer.currentToken)
 				
 			elif getSubroutineBodyNext:
-				self.compileSubroutineBody()
+				self.compileSubroutineBody(subroutineName)
 				getSubroutineBodyNext = False
 				break
 
@@ -146,27 +157,73 @@ class CompilationEngine:
 		return
 
 	# Parameter List Grammar ( <type> <var-name> (',' <type> <var-name>)* )?
-	def compileParameterList(self):
+	def compileParameterList(self, subroutineType):
 		self.writeXML("<parameterList>")
 		self.incTabLevel()
-		#self.writeXML(self.tokenizer.tokenXML)	
-		while (self.tokenizer.hasMoreTokens()):	
-			if self.tokenizer.nextToken == ")":
-				break	
+
+		symKind = "argument"
+
+		if (subroutineType == "method"):
+			symName = "this"
+			symType = self.__className
+			self.__subSymTable.define(symName, symType, symKind)
+			self.incTabLevel()
+			self.writeSymTableXML(symName, self.__subSymTable)
+			self.decTabLevel()
+
+		self.tokenizer.advance()
+
+		if (self.tokenizer.currentToken != ")"):
+			self.writeXML(self.tokenizer.tokenXML) # <type>
+			symType = self.tokenizer.currentToken
 			self.tokenizer.advance()
-			self.writeXML(self.tokenizer.tokenXML)
+
+			self.writeXML(self.tokenizer.tokenXML) # <varname>
+			symName = self.tokenizer.currentToken
+			self.__subSymTable.define(symName, symType, symKind)
+			self.incTabLevel()
+			self.writeSymTableXML(symName, self.__subSymTable)
+			self.decTabLevel()
+
+			self.tokenizer.advance()
+
+			while (self.tokenizer.currentToken == ","):
+
+				self.tokenizer.advance()
+				self.writeXML(self.tokenizer.tokenXML) # <type> 
+				symType = self.tokenizer.currentToken
+
+				self.tokenizer.advance()
+				self.writeXML(self.tokenizer.tokenXML) # <var-name>
+				symName = self.tokenizer.currentToken
+
+				self.__subSymTable.define(symName, symType, symKind)
+				self.incTabLevel()
+				self.writeSymTableXML(symName, self.__subSymTable)
+				self.decTabLevel()
+
+				self.tokenizer.advance()
+
+
+		#self.writeXML(self.tokenizer.tokenXML)	
+		#while (self.tokenizer.hasMoreTokens()):	
+		#	if self.tokenizer.nextToken == ")":
+		#		break	
+		#	self.tokenizer.advance()
+		#	self.writeXML(self.tokenizer.tokenXML)
 			
 		self.decTabLevel()
 		self.writeXML("</parameterList>")
 		return
 
 	# subroutine Body Grammar; <subroutine-body> '{' <var-dec>* <statements> '}'
-	def compileSubroutineBody(self):
+	def compileSubroutineBody(self, subroutineName):
 		self.writeXML("<subroutineBody>")
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# {
 
 		self.__subSymTable.startSubroutine()		# start with a clean symbol table
+		nLocals = 0									# initialize to 0, if this is a void function then it won't change.
 
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
@@ -174,7 +231,13 @@ class CompilationEngine:
 			if self.tokenizer.currentToken == "var":
 				#self.tokenizer.advance()
 				self.compileVarDec()
+				
+				nLocals = self.__subSymTable.varCount("local")		# get the count of local variables
+				
 			else:
+				# we are now know all the local vars and can write the vm code for the function
+				self.vmWriter.writeFunction(self.__className, subroutineName, nLocals)
+
 				self.compileStatements()
 				#print("compileSubroutineBody", self.tokenizer.currentToken)
 				self.writeXML(self.tokenizer.tokenXML) # }
@@ -395,14 +458,28 @@ class CompilationEngine:
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)	 # do
 
-		while (self.tokenizer.hasMoreTokens()):		
+		doWhile = True
+		subroutineName = ""
+
+		while (doWhile):		
 			self.tokenizer.advance()
-			self.writeXML(self.tokenizer.tokenXML)
+			
 			if self.tokenizer.currentToken == "(":
-				self.compileExpressionList()
-				#self.writeXML(self.tokenizer.tokenXML) # closing paren
-			if self.tokenizer.currentToken == ";":
-				break
+				nArgs = self.compileExpressionList()
+				self.vmWriter.writeCall(subroutineName, nArgs)
+				self.vmWriter.writePop("temp", 0)				# discard the return value
+
+			elif self.tokenizer.currentToken == ")":
+				self.writeXML(self.tokenizer.tokenXML) 
+				
+			elif self.tokenizer.currentToken == ";":
+				self.writeXML(self.tokenizer.tokenXML) 
+
+				doWhile = False
+
+			else:
+				self.writeXML(self.tokenizer.tokenXML) 	# subroutine name or className.subroutine name
+				subroutineName = subroutineName + self.tokenizer.currentToken
 
 		self.decTabLevel()
 		self.writeXML("</doStatement>")
@@ -413,14 +490,21 @@ class CompilationEngine:
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)	 # return
 
-		while (self.tokenizer.hasMoreTokens()):	
-			if self.tokenizer.nextToken == ";":
-				self.tokenizer.advance()
-				self.writeXML(self.tokenizer.tokenXML)
-				break	
-			else:
-				self.compileExpression()
+		#while (self.tokenizer.hasMoreTokens()):	
+		if self.tokenizer.nextToken != ";":
+			self.compileExpression()				# assume return value has been pushed by the expression
+		else:
+			self.vmWriter.writePush("constant" , 0)	# no return value so push a dummy value
+
+		self.tokenizer.advance()
+
+		if self.tokenizer.currentToken == ";":
+			self.writeXML(self.tokenizer.tokenXML)  # ";"
+		else:
+			self.errorMsg("compileReturn", ';', self.tokenizer.currentToken)
 		
+		self.vmWriter.writeReturn()
+
 		self.decTabLevel()
 		self.writeXML("</returnStatement>")
 
@@ -459,6 +543,7 @@ class CompilationEngine:
 				if self.tokenizer.nextToken in op:
 					getOperatorNext = True
 					self.tokenizer.advance()
+					operator = self.tokenizer.currentToken
 				else:
 					break
 			elif getOperatorNext:
@@ -467,6 +552,7 @@ class CompilationEngine:
 				getSecondTermNext = True
 			elif getSecondTermNext:
 				self.compileTerm()
+				self.vmWriter.writeArithmetic(operator)
 				break
 
 		self.decTabLevel()
@@ -480,6 +566,9 @@ class CompilationEngine:
 			self.tokenizer.advance()
 			if self.tokenizer.tokenType in [C_KEYWORD, C_LITERAL_STRING, C_INTEGER]:
 				self.writeXML(self.tokenizer.tokenXML) 
+				if (self.tokenizer.tokenType == C_INTEGER):
+					self.vmWriter.writePush("constant", self.tokenizer.currentToken)	# push constant to the stack
+
 			elif self.tokenizer.currentToken in unaryop:
 				self.writeXML(self.tokenizer.tokenXML) 
 				self.compileTerm()
@@ -541,10 +630,13 @@ class CompilationEngine:
 
 		self.decTabLevel()
 		self.writeXML("</term>")
+		return
 
 	def compileExpressionList(self):
 		self.writeXML("<expressionList>")
 		self.incTabLevel()
+		countExpressions = 0
+
 		while (self.tokenizer.hasMoreTokens()):	
 			if self.tokenizer.nextToken == ")":
 				break
@@ -555,9 +647,12 @@ class CompilationEngine:
 			else:
 				self.compileExpression()
 			
+			countExpressions = countExpressions + 1
 
 		self.decTabLevel()
 		self.writeXML("</expressionList>")
+
+		return(countExpressions)
 
 	def errorMsg(self, func, expected, found):
 		print("Error in method", func, expected, "was expected", found, "was found.")
