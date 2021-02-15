@@ -25,7 +25,7 @@ switcherOp = {
 
 switcherUnaryOp = {
 	"~" : "not",
-	'-' : "not"
+	'-' : "neg"
 }
 
 unaryop = [ '~', '-']

@@ -15,6 +15,7 @@ class SymbolTable:
 		print("Closing SymbolTable...")
 		
 	def startSubroutine(self):
+		print("clearing subroutine symbol table")
 		self.__dictType.clear()
 		self.__dictKind.clear()
 		self.__dictIndex.clear()
@@ -31,10 +32,10 @@ class SymbolTable:
 	def VarCount(self, kind):
 		return sum(x == kind for x in self.__dictKind.values()) 
 		
-	def KindOf(self, name):
+	def KindOf(self, name):						# field static augument local
 		return self.__dictKind.get(name)
 
-	def TypeOf(self, name):
+	def TypeOf(self, name):						# int boolean String ...
 		return self.__dictType.get(name)
 
 	def IndexOf(self, name):

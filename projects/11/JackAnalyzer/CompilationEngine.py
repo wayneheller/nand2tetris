@@ -13,13 +13,15 @@ class CompilationEngine:
 		xmlFileName = jackfile[:-5] + "_.xml"
 		self.__xmlfile = open(xmlFileName, 'w')
 
-		vmFileName  = jackfile[:-5] + "_.vm"
+		vmFileName  = jackfile[:-5] + ".vm"
 		self.vmWriter = VMWriter(vmFileName)
 		
 		self.__tabLevel = 0
 		self.__clsSymTable = SymbolTable()		# symbol table for class level variables
 		self.__subSymTable = SymbolTable()		# symbol table for subroutine level variables
 		self.__className = ""					# need to save the class name for method paramter this
+		self.__ifGotoLabelIndex = 0				# index counter for if-goto labels
+		self.__whileLabelIndex = 0			# index counter for while labels
 		self.compileClass()
 			
 	def __del__(self):
@@ -126,8 +128,10 @@ class CompilationEngine:
 			elif getSubroutineNameNext:
 				self.writeXML(self.tokenizer.tokenXML)
 				subroutineName = self.tokenizer.currentToken
+				print("subroutineName:" , subroutineName)
 				getSubroutineNameNext = False
 				getOpeningParenNext = True
+				self.__subSymTable.startSubroutine()		# start with a clean symbol table
 
 			elif getOpeningParenNext:
 				if self.tokenizer.currentToken == "(":
@@ -181,6 +185,7 @@ class CompilationEngine:
 			self.writeXML(self.tokenizer.tokenXML) # <varname>
 			symName = self.tokenizer.currentToken
 			self.__subSymTable.define(symName, symType, symKind)
+			print("parameterList",symName, symType, symKind)
 			self.incTabLevel()
 			self.writeSymTableXML(symName, self.__subSymTable)
 			self.decTabLevel()
@@ -198,6 +203,7 @@ class CompilationEngine:
 				symName = self.tokenizer.currentToken
 
 				self.__subSymTable.define(symName, symType, symKind)
+				print("parameterList",symName, symType, symKind)
 				self.incTabLevel()
 				self.writeSymTableXML(symName, self.__subSymTable)
 				self.decTabLevel()
@@ -222,7 +228,7 @@ class CompilationEngine:
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# {
 
-		self.__subSymTable.startSubroutine()		# start with a clean symbol table
+		
 		nLocals = 0									# initialize to 0, if this is a void function then it won't change.
 
 		while (self.tokenizer.hasMoreTokens()):		
@@ -232,7 +238,7 @@ class CompilationEngine:
 				#self.tokenizer.advance()
 				self.compileVarDec()
 				
-				nLocals = self.__subSymTable.varCount("local")		# get the count of local variables
+				nLocals = self.__subSymTable.VarCount("local")		# get the count of local variables
 				
 			else:
 				# we are now know all the local vars and can write the vm code for the function
@@ -253,6 +259,7 @@ class CompilationEngine:
 		self.incTabLevel()
 
 		self.writeXML(self.tokenizer.tokenXML)	# var
+
 		symKind = "local"
 		self.tokenizer.advance()
 
@@ -262,6 +269,9 @@ class CompilationEngine:
 
 		self.writeXML(self.tokenizer.tokenXML) # <varname>
 		symName = self.tokenizer.currentToken
+
+		print('var ', symName, symType, symKind)
+
 		self.__subSymTable.define(symName, symType, symKind)
 		self.incTabLevel()
 		self.writeSymTableXML(symName, self.__subSymTable)
@@ -332,10 +342,13 @@ class CompilationEngine:
 				if self.tokenizer.nextToken == '[':
 					getVarExpressionNext = True
 				else:
+					varKind, varIdx = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
+					print(varKind, varIdx)
 					getEqualSignNext = True
 			elif getVarExpressionNext:
 				self.writeXML(self.tokenizer.tokenXML) # [
 				self.compileExpression()
+				self.vmWriter.writePop(varKind, varIdx)		# pop the value of the expresssion
 				self.tokenizer.advance()
 				self.writeXML(self.tokenizer.tokenXML) # ]  not working as intended.
 				getEqualSignNext = True
@@ -346,6 +359,7 @@ class CompilationEngine:
 					self.writeXML(self.tokenizer.tokenXML)
 					getEqualSignNext = False
 					self.compileExpression()
+					self.vmWriter.writePop(varKind, varIdx)
 					getSemicolonNext = True
 				else:
 					self.errorMsg("compileLet", "=", self.tokenizer.currentToken)
@@ -362,6 +376,16 @@ class CompilationEngine:
 
 # <if-statement>      
 #      ::=  'if' '(' <expression> ')' '{' <statements> '}' ( 'else' '{' <statements> '}' )?
+#      vm implementation:
+#	   compiled (expression)
+#		not
+#		if-goto L1
+#		compiled (statements1)
+#		goto L2
+#		label L1
+#		compiled (statements2)
+#		label L2
+
 	def compileIf(self):
 		self.writeXML("<ifStatement>")
 		self.incTabLevel()
@@ -370,6 +394,7 @@ class CompilationEngine:
 		getOpeningParenNext = True
 		getClosingParenNext = False
 		getOpeningCurlyBraceNext = False
+		doElseStatement = False 				# if True, then processing an else statement
 
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
@@ -384,6 +409,10 @@ class CompilationEngine:
 			elif getClosingParenNext:
 				if self.tokenizer.currentToken == ")":
 					self.writeXML(self.tokenizer.tokenXML)
+					self.vmWriter.writeUnaryOp("~")			# not
+					L1 = self.getIfGotoLabel()
+					L2 = self.getIfGotoLabel()
+					self.vmWriter.writeIf(L1)				# if-goto L1
 					getClosingParenNext = False
 					getOpeningCurlyBraceNext = True
 				else:
@@ -392,14 +421,22 @@ class CompilationEngine:
 				if self.tokenizer.currentToken == "{":
 					self.writeXML(self.tokenizer.tokenXML)
 					self.compileStatements()
+					if not doElseStatement:
+						self.vmWriter.writeGoto(L2)				# goto L2
+						self.vmWriter.writeLabel(L1)			# label L1
+					else:
+						self.vmWriter.writeLabel(L2)
 					self.writeXML(self.tokenizer.tokenXML) # }
 					
 					if self.tokenizer.hasMoreTokens():
 						self.tokenizer.advance()
 						if self.tokenizer.currentToken == "else":    
-							self.writeXML(self.tokenizer.tokenXML) 
+							self.writeXML(self.tokenizer.tokenXML)  #else
+							
+							doElseStatement = True
 							getOpeningCurlyBraceNext = True
 						else:
+							#self.vmWriter.writeLabel(L2)	# to hand the case where there is no else statement
 							break
 					else:
 						break
@@ -412,10 +449,22 @@ class CompilationEngine:
 		self.writeXML("</ifStatement>")
 
 	# while grammar:  'while' '(' <expression> ')' '{' <statements> '}'  
+	# vm implementation
+# 		label L1
+# 		compiled (expression)
+# 		not
+# 		if-goto L2
+# 		compiled (statements)
+# 		goto L1
+# 		label L2
+
 	def compileWhile(self):
 		self.writeXML("<whileStatement>")
 		self.incTabLevel()
-		self.writeXML(self.tokenizer.tokenXML)	 # if
+		self.writeXML(self.tokenizer.tokenXML)	 # while
+		L1 = self.getWhileLabel()
+		L2 = self.getWhileLabel()
+		self.vmWriter.writeLabel(L1)
 
 		getOpeningParenNext = True
 		getClosingParenNext = False
@@ -427,6 +476,8 @@ class CompilationEngine:
 				if self.tokenizer.currentToken == "(":
 					self.writeXML(self.tokenizer.tokenXML)
 					self.compileExpression()
+					self.vmWriter.writeUnaryOp("~")		# 		not
+					self.vmWriter.writeIf(L2)			# 		if-goto L2
 					getOpeningParenNext = False
 					getClosingParenNext = True
 				else:
@@ -442,7 +493,9 @@ class CompilationEngine:
 				if self.tokenizer.currentToken == "{":
 					self.writeXML(self.tokenizer.tokenXML)
 					self.compileStatements()
+					self.vmWriter.writeGoto(L1)			# 		goto L1
 					self.writeXML(self.tokenizer.tokenXML) # }
+					self.vmWriter.writeLabel(L2)		# 		label L2
 					
 				
 				else:
@@ -563,15 +616,27 @@ class CompilationEngine:
 		self.writeXML("<term>")
 		self.incTabLevel()
 		while (self.tokenizer.hasMoreTokens()):	
+
 			self.tokenizer.advance()
+
 			if self.tokenizer.tokenType in [C_KEYWORD, C_LITERAL_STRING, C_INTEGER]:
 				self.writeXML(self.tokenizer.tokenXML) 
-				if (self.tokenizer.tokenType == C_INTEGER):
+				if self.tokenizer.tokenType == C_INTEGER:
 					self.vmWriter.writePush("constant", self.tokenizer.currentToken)	# push constant to the stack
+
+				elif self.tokenizer.tokenType == C_KEYWORD:
+					if self.tokenizer.currentToken == "true":							# true
+						self.vmWriter.writePush("constant", 0)
+						self.vmWriter.writeUnaryOp("~")
+					elif self.tokenizer.currentToken == "false":
+						self.vmWriter.writePush("constant", 0)							# false
 
 			elif self.tokenizer.currentToken in unaryop:
 				self.writeXML(self.tokenizer.tokenXML) 
+				unaryOp = self.tokenizer.currentToken
 				self.compileTerm()
+				self.vmWriter.writeUnaryOp(unaryOp)					# unary operator -  error here
+
 			elif self.tokenizer.currentToken == "(":
 				self.writeXML(self.tokenizer.tokenXML) 
 				self.compileExpression()
@@ -580,6 +645,7 @@ class CompilationEngine:
 					self.writeXML(self.tokenizer.tokenXML) 
 				else:
 					self.errorMsg("compileTerm:Expression", ")", self.tokenizer.nextToken)
+
 			elif self.tokenizer.tokenType == C_IDENTIFIER:
 				if self.tokenizer.nextToken == "[":		# array: (<var-name> '[' <expression> ']')
 					self.writeXML(self.tokenizer.tokenXML)  # var-name
@@ -596,9 +662,11 @@ class CompilationEngine:
 				elif self.tokenizer.nextToken == "(":	# subroutine call: (<subroutine-name> '(' <expression-list> ')') 
 					
 					self.writeXML(self.tokenizer.tokenXML)  # subroutine-name
+					subroutineName = self.tokenizer.currentToken
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # (
-					self.compileExpressionList()
+					nLocals = self.compileExpressionList()
+					self.vmWriter.writeCall(subroutineName, nLocals)		# write subroutine call to vm file
 					if self.tokenizer.nextToken == ")":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML) 
@@ -608,14 +676,18 @@ class CompilationEngine:
 				elif self.tokenizer.nextToken == ".":	# subroutine call: ((<class-name> | <var-name>) '.' <subroutine-name> '(' <expression-list> ')')
 			
 					self.writeXML(self.tokenizer.tokenXML)  # (<class-name> | <var-name>)
+					subroutineName = self.tokenizer.currentToken
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # .
+					subroutineName = subroutineName + self.tokenizer.currentToken
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # subroutine-name
+					subroutineName = subroutineName + self.tokenizer.currentToken
 					if self.tokenizer.nextToken == "(":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML)
-						self.compileExpressionList()
+						nLocals = self.compileExpressionList()
+						self.vmWriter.writeCall(subroutineName, nLocals)		# write subroutine call to vm file
 						if self.tokenizer.nextToken == ")": 
 							self.tokenizer.advance()
 							self.writeXML(self.tokenizer.tokenXML)
@@ -626,6 +698,8 @@ class CompilationEngine:
 			
 				else:
 					self.writeXML(self.tokenizer.tokenXML)	# variable-name
+					varKind, varIdx = self.convertVarToSymbol(self.tokenizer.currentToken)	# push variable in expresssion
+					self.vmWriter.writePush(varKind, varIdx)
 			break
 
 		self.decTabLevel()
@@ -683,3 +757,34 @@ class CompilationEngine:
 		if self.__tabLevel < 1:
 			self.__tabLevel = 1
 		return
+
+	def getIfGotoLabel(self):
+		s = self.__className + ".IfGotoLabel." + str(self.__ifGotoLabelIndex)
+		self.__ifGotoLabelIndex = self.__ifGotoLabelIndex + 1
+		return(s)
+
+	def getWhileLabel(self):
+		s = self.__className + ".WhileLabel." + str(self.__whileLabelIndex)
+		self.__whileLabelIndex = self.__whileLabelIndex + 1
+		return(s)
+
+	def convertVarToSymbol(self, varName):
+		print(varName)
+		# search class symbols
+		if self.__clsSymTable.KindOf(varName) != None:
+			#print('class')
+			if self.__clsSymTable.KindOf(varName) == "static":
+				return (self.__clsSymTable.KindOf(varName) , self.__clsSymTable.IndexOf(varName))
+			elif self.__clsSymTable.KindOf(varName) == "field":
+				return ("this" , self.__clsSymTable.IndexOf(varName))
+			else:
+				self.errorMsg("convertVarToSymbol", "field or static ", varName + ": " + self.__clsSymTable.KindOf(varName))
+				return ("foobar", 0)
+
+		elif self.__subSymTable.KindOf(varName) != None:
+			#print('sub')
+			return (self.__subSymTable.KindOf(varName) , self.__subSymTable.IndexOf(varName))
+
+		else:
+			self.errorMsg("convertVarToSymbol", varName, "nothing")
+			return ("foobar", 0)
