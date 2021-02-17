@@ -15,7 +15,7 @@ class SymbolTable:
 		print("Closing SymbolTable...")
 		
 	def startSubroutine(self):
-		print("clearing subroutine symbol table")
+		#print("clearing subroutine symbol table")
 		self.__dictType.clear()
 		self.__dictKind.clear()
 		self.__dictIndex.clear()

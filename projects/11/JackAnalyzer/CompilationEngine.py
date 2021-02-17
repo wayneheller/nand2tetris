@@ -117,7 +117,7 @@ class CompilationEngine:
 		self.writeXML("<subroutineDec>")
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# ('constructor' | 'function' | 'method')
-		subroutineType = self.tokenizer.currentToken	# save the type so that it can be passed to Parameter List, methods require special handling
+		subroutineType = self.tokenizer.currentToken	# save the type so that it can be passed to Parameter List and Subroutine Body methods and constructors require special handling
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
 			if getSubroutineTypeNext:
@@ -128,7 +128,7 @@ class CompilationEngine:
 			elif getSubroutineNameNext:
 				self.writeXML(self.tokenizer.tokenXML)
 				subroutineName = self.tokenizer.currentToken
-				print("subroutineName:" , subroutineName)
+				#print("subroutineName:" , subroutineName)
 				getSubroutineNameNext = False
 				getOpeningParenNext = True
 				self.__subSymTable.startSubroutine()		# start with a clean symbol table
@@ -152,7 +152,7 @@ class CompilationEngine:
 			#		self.errorMsg("compileSubroutineDec", ")", self.tokenizer.currentToken)
 				
 			elif getSubroutineBodyNext:
-				self.compileSubroutineBody(subroutineName)
+				self.compileSubroutineBody(subroutineName, subroutineType)
 				getSubroutineBodyNext = False
 				break
 
@@ -185,7 +185,7 @@ class CompilationEngine:
 			self.writeXML(self.tokenizer.tokenXML) # <varname>
 			symName = self.tokenizer.currentToken
 			self.__subSymTable.define(symName, symType, symKind)
-			print("parameterList",symName, symType, symKind)
+			#print("parameterList",symName, symType, symKind)
 			self.incTabLevel()
 			self.writeSymTableXML(symName, self.__subSymTable)
 			self.decTabLevel()
@@ -203,7 +203,7 @@ class CompilationEngine:
 				symName = self.tokenizer.currentToken
 
 				self.__subSymTable.define(symName, symType, symKind)
-				print("parameterList",symName, symType, symKind)
+				#print("parameterList",symName, symType, symKind)
 				self.incTabLevel()
 				self.writeSymTableXML(symName, self.__subSymTable)
 				self.decTabLevel()
@@ -223,7 +223,7 @@ class CompilationEngine:
 		return
 
 	# subroutine Body Grammar; <subroutine-body> '{' <var-dec>* <statements> '}'
-	def compileSubroutineBody(self, subroutineName):
+	def compileSubroutineBody(self, subroutineName, subroutineType):
 		self.writeXML("<subroutineBody>")
 		self.incTabLevel()
 		self.writeXML(self.tokenizer.tokenXML)		# {
@@ -239,10 +239,22 @@ class CompilationEngine:
 				self.compileVarDec()
 				
 				nLocals = self.__subSymTable.VarCount("local")		# get the count of local variables
+				if subroutineType in ["constructor", "method"]:
+					nLocals = nLocals + 1
 				
 			else:
 				# we are now know all the local vars and can write the vm code for the function
 				self.vmWriter.writeFunction(self.__className, subroutineName, nLocals)
+
+				if subroutineType == "constructor":
+					nFields = self.__clsSymTable.VarCount("field")
+					self.vmWriter.writePush("constant", nFields)
+					self.vmWriter.writeCall("Memory.alloc", 1)
+					self.vmWriter.writePop("pointer", 0)
+
+				elif subroutineType == "method":
+					self.vmWriter.writePush("argument" , 0)		# the first argument is the object reference for THIS
+					self.vmWriter.writePop("pointer" , 0)
 
 				self.compileStatements()
 				#print("compileSubroutineBody", self.tokenizer.currentToken)
@@ -270,7 +282,7 @@ class CompilationEngine:
 		self.writeXML(self.tokenizer.tokenXML) # <varname>
 		symName = self.tokenizer.currentToken
 
-		print('var ', symName, symType, symKind)
+		#print('var ', symName, symType, symKind)
 
 		self.__subSymTable.define(symName, symType, symKind)
 		self.incTabLevel()
@@ -342,8 +354,8 @@ class CompilationEngine:
 				if self.tokenizer.nextToken == '[':
 					getVarExpressionNext = True
 				else:
-					varKind, varIdx = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
-					print(varKind, varIdx)
+					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
+					#print(varKind, varIdx)
 					getEqualSignNext = True
 			elif getVarExpressionNext:
 				self.writeXML(self.tokenizer.tokenXML) # [
@@ -436,7 +448,7 @@ class CompilationEngine:
 							doElseStatement = True
 							getOpeningCurlyBraceNext = True
 						else:
-							#self.vmWriter.writeLabel(L2)	# to hand the case where there is no else statement
+							self.vmWriter.writeLabel(L2)	# to handle the case where there is no else statement
 							break
 					else:
 						break
@@ -519,6 +531,11 @@ class CompilationEngine:
 			
 			if self.tokenizer.currentToken == "(":
 				nArgs = self.compileExpressionList()
+
+				if subroutineType == "method":		# additional argment for This object reference
+					nArgs = nArgs + 1
+
+
 				self.vmWriter.writeCall(subroutineName, nArgs)
 				self.vmWriter.writePop("temp", 0)				# discard the return value
 
@@ -531,8 +548,22 @@ class CompilationEngine:
 				doWhile = False
 
 			else:
-				self.writeXML(self.tokenizer.tokenXML) 	# subroutine name or className.subroutine name
-				subroutineName = subroutineName + self.tokenizer.currentToken
+				self.writeXML(self.tokenizer.tokenXML) 	# subroutine name or className.subroutine name or objectvar.subroutine name
+				if subroutineName == "":
+					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)
+					if varKind != None:
+						subroutineName = varType
+						self.vmWriter.writePush(varKind, varIdx)		# push the object reference 
+						subroutineType = "method"
+					elif self.tokenizer.nextToken != ".":
+						subroutineName =   self.__className + "." + self.tokenizer.currentToken # need to append the class name to the function
+						subroutineType = 'method'
+						self.vmWriter.writePush("pointer",0) # there is an error here when it is an object var
+					else:
+						subroutineName = self.tokenizer.currentToken 
+						subroutineType = 'function'
+				else:
+					subroutineName = subroutineName + self.tokenizer.currentToken
 
 		self.decTabLevel()
 		self.writeXML("</doStatement>")
@@ -545,7 +576,11 @@ class CompilationEngine:
 
 		#while (self.tokenizer.hasMoreTokens()):	
 		if self.tokenizer.nextToken != ";":
-			self.compileExpression()				# assume return value has been pushed by the expression
+			if self.tokenizer.nextToken == "this":
+				self.tokenizer.advance()
+				self.vmWriter.writePush("pointer" , 0)	# return a reference to the current object
+			else:
+				self.compileExpression()				# assume return value has been pushed by the expression
 		else:
 			self.vmWriter.writePush("constant" , 0)	# no return value so push a dummy value
 
@@ -628,8 +663,12 @@ class CompilationEngine:
 					if self.tokenizer.currentToken == "true":							# true
 						self.vmWriter.writePush("constant", 0)
 						self.vmWriter.writeUnaryOp("~")
-					elif self.tokenizer.currentToken == "false":
+					elif self.tokenizer.currentToken in ["false" , "null"]:
 						self.vmWriter.writePush("constant", 0)							# false
+					elif self.tokenizer.currentToken == "this":
+						self.vmWriter.writePush("pointer", 0)
+					elif self.tokenizer.currentToken == "that":
+						self.vmWriter.writePush('pointer', 1)
 
 			elif self.tokenizer.currentToken in unaryop:
 				self.writeXML(self.tokenizer.tokenXML) 
@@ -676,13 +715,23 @@ class CompilationEngine:
 				elif self.tokenizer.nextToken == ".":	# subroutine call: ((<class-name> | <var-name>) '.' <subroutine-name> '(' <expression-list> ')')
 			
 					self.writeXML(self.tokenizer.tokenXML)  # (<class-name> | <var-name>)
-					subroutineName = self.tokenizer.currentToken
+					
+					# check to see whether this is an object method call vs. a class function call
+					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)
+
+					if varKind != None:											# this is an object reference, and we need to call the method on its Class
+						self.vmWriter.writePush(varKind, varIdx)
+						subroutineName = varType
+					else:
+						subroutineName = self.tokenizer.currentToken			# this is a function call of a class
+
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # .
 					subroutineName = subroutineName + self.tokenizer.currentToken
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # subroutine-name
 					subroutineName = subroutineName + self.tokenizer.currentToken
+
 					if self.tokenizer.nextToken == "(":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML)
@@ -698,7 +747,7 @@ class CompilationEngine:
 			
 				else:
 					self.writeXML(self.tokenizer.tokenXML)	# variable-name
-					varKind, varIdx = self.convertVarToSymbol(self.tokenizer.currentToken)	# push variable in expresssion
+					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)	# push variable in expresssion
 					self.vmWriter.writePush(varKind, varIdx)
 			break
 
@@ -769,22 +818,22 @@ class CompilationEngine:
 		return(s)
 
 	def convertVarToSymbol(self, varName):
-		print(varName)
+		#print(varName)
 		# search class symbols
 		if self.__clsSymTable.KindOf(varName) != None:
 			#print('class')
 			if self.__clsSymTable.KindOf(varName) == "static":
-				return (self.__clsSymTable.KindOf(varName) , self.__clsSymTable.IndexOf(varName))
+				return (self.__clsSymTable.KindOf(varName) , self.__clsSymTable.IndexOf(varName), self.__clsSymTable.TypeOf(varName))
 			elif self.__clsSymTable.KindOf(varName) == "field":
-				return ("this" , self.__clsSymTable.IndexOf(varName))
+				return ("this" , self.__clsSymTable.IndexOf(varName), self.__clsSymTable.TypeOf(varName))
 			else:
 				self.errorMsg("convertVarToSymbol", "field or static ", varName + ": " + self.__clsSymTable.KindOf(varName))
-				return ("foobar", 0)
+				return ("foobar", 0, None)
 
 		elif self.__subSymTable.KindOf(varName) != None:
 			#print('sub')
-			return (self.__subSymTable.KindOf(varName) , self.__subSymTable.IndexOf(varName))
+			return (self.__subSymTable.KindOf(varName) , self.__subSymTable.IndexOf(varName), self.__subSymTable.TypeOf(varName))
 
 		else:
-			self.errorMsg("convertVarToSymbol", varName, "nothing")
-			return ("foobar", 0)
+			#self.errorMsg("convertVarToSymbol", varName, "nothing")
+			return (None, 0, None)
