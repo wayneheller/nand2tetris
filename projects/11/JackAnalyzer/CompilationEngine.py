@@ -344,6 +344,7 @@ class CompilationEngine:
 		getVarExpressionNext = False
 		getEqualSignNext = False
 		getSemicolonNext = False
+		isArray = False
 
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
@@ -351,18 +352,31 @@ class CompilationEngine:
 				#print("varName", self.tokenizer.currentToken)
 				self.writeXML(self.tokenizer.tokenXML)
 				getVarNameNext = False
+				varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
 				if self.tokenizer.nextToken == '[':
 					getVarExpressionNext = True
 				else:
-					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
+					#varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)	# gets the appropriate symbol table variable reference
 					#print(varKind, varIdx)
 					getEqualSignNext = True
 			elif getVarExpressionNext:
 				self.writeXML(self.tokenizer.tokenXML) # [
+					# let arr[expression1] = expression2
+					# push arr
+					# VM code for computing and pushing the value of expression1
+					# add // top stack value = RAM address of arr[expression1]
+					# VM code for computing and pushing the value of expression2
+					# pop temp 0 // temp 0 = the value of expression2
+					# pop pointer 1
+					# push temp 0
+					# pop that 0
+				self.vmWriter.writePush(varKind, varIdx)
 				self.compileExpression()
-				self.vmWriter.writePop(varKind, varIdx)		# pop the value of the expresssion
+				self.vmWriter.writeArithmetic("+")
+				#self.vmWriter.writePop(varKind, varIdx)		# pop the value of the expresssion
 				self.tokenizer.advance()
-				self.writeXML(self.tokenizer.tokenXML) # ]  not working as intended.
+				self.writeXML(self.tokenizer.tokenXML) # ]  
+				isArray = True
 				getEqualSignNext = True
 				getVarExpressionNext = False
 				
@@ -371,7 +385,13 @@ class CompilationEngine:
 					self.writeXML(self.tokenizer.tokenXML)
 					getEqualSignNext = False
 					self.compileExpression()
-					self.vmWriter.writePop(varKind, varIdx)
+					if isArray:
+						self.vmWriter.writePop("temp", 0)
+						self.vmWriter.writePop("pointer", 1)
+						self.vmWriter.writePush("temp", 0)
+						self.vmWriter.writePop("that", 0)
+					else:
+						self.vmWriter.writePop(varKind, varIdx)
 					getSemicolonNext = True
 				else:
 					self.errorMsg("compileLet", "=", self.tokenizer.currentToken)
@@ -670,6 +690,16 @@ class CompilationEngine:
 					elif self.tokenizer.currentToken == "that":
 						self.vmWriter.writePush('pointer', 1)
 
+				elif self.tokenizer.tokenType == C_LITERAL_STRING:
+					#print(self.tokenizer.currentToken)
+					nLen = len(self.tokenizer.currentToken) - 2		# strip off the double quotation marks
+					self.vmWriter.writePush("constant", nLen)
+					self.vmWriter.writeCall("String.new", 1)
+					
+					for c in self.tokenizer.currentToken[1:-1]:
+						self.vmWriter.writePush("constant", ord(c))
+						self.vmWriter.writeCall("String.appendChar", 2)
+
 			elif self.tokenizer.currentToken in unaryop:
 				self.writeXML(self.tokenizer.tokenXML) 
 				unaryOp = self.tokenizer.currentToken
@@ -687,10 +717,20 @@ class CompilationEngine:
 
 			elif self.tokenizer.tokenType == C_IDENTIFIER:
 				if self.tokenizer.nextToken == "[":		# array: (<var-name> '[' <expression> ']')
+	
 					self.writeXML(self.tokenizer.tokenXML)  # var-name
+					varKind, varIdx, varType = self.convertVarToSymbol(self.tokenizer.currentToken)
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # [
-					self.compileExpression()
+
+					self.vmWriter.writePush(varKind, varIdx)	# push the base address of the array
+
+					self.compileExpression()					# evaluate the expression
+
+					self.vmWriter.writeArithmetic("+")			# calculate the indexed address
+					self.vmWriter.writePop("pointer", 1)		# set THAT to the indexed address
+					self.vmWriter.writePush("that", 0)			# push the value of the indexed address
+
 					if self.tokenizer.nextToken == "]":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML) 
