@@ -114,10 +114,14 @@ class JackTokenizer:
 				else:
 					token = "/**"
 			
-				if token in keywords:					# is the token a keyword?  Doesn't handle the case where a keyword is part of an identifier, e.g trueVal
-					#print("Tokenizing keyword", token)
-					self.__nextTokens.append(token)
-					token = ""
+				if token in keywords:					# is the token a keyword?  
+					if i < len(s) - 2:					# handles the case where a keyword is part of an identifier, e.g trueVal double
+						if s[i+1].isspace() or s[i+1] in symbols:
+							self.__nextTokens.append(token)
+							token = ""
+					else:
+						self.__nextTokens.append(token)
+						token = ""
 
 				elif token in symbols:
 					if token != '/' and token != "/**":
