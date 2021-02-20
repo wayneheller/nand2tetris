@@ -55,3 +55,9 @@ Chapter 10:
 * Difficult assignment.  Took many hours to complete.  Generating the xml file is just a validation.  The goal is to build a state model for each token.
 * Parsing the multiline comments was a challenge.  Also, do not recommend separating the lines of commands by spaces.  Rather parse by each character.
 * Approach taken is to parse each line and build a "stack" of tokens.  Then pop each token for processing.  I maintained a reference to both the current token and the next token
+
+Chapter 11:
+* Definitely the most difficult assignment so far.  It helped to compile the test programs using the JackCompiler.bat utility and compare output between compilers.  Note that JackCompiler.bat uses a different approach for if statement control flow than is described in the lectures which makes line by line comparison difficult.
+* I ended up making extensive changes to the compilation engine to handle the vm code generation.
+* Needed to consult posts on how to distinguish between function calls and method calls, expecially for Pong.  For example draw() is a method call in Bat and Ball classes.  Anything without an object or class identifier is treated as a method call.  Found that in the nand2tetris forum on chapter 11. http://nand2tetris-questions-and-answers-forum.32033.n3.nabble.com/Differentiating-functions-methods-and-constructors-td4026430.html
+
