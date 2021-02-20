@@ -41,8 +41,8 @@ class VMWriter:
 		return
 
 
-	def writeCall(self, subroutineName, nLocals):
-		self.__vmfile.writelines("call " + subroutineName + " " + str(nLocals) + "\n")
+	def writeCall(self, subroutineName, nArgs):
+		self.__vmfile.writelines("call " + subroutineName + " " + str(nArgs) + "\n")
 		return
 
 	def writeReturn(self):

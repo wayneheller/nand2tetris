@@ -191,14 +191,19 @@ class CompilationEngine:
 			self.decTabLevel()
 
 			self.tokenizer.advance()
+			#print('parameter list', self.tokenizer.currentToken)
 
 			while (self.tokenizer.currentToken == ","):
-
-				self.tokenizer.advance()
+				if self.tokenizer.hasMoreTokens():					# handles case where parameter list spans lines
+					self.tokenizer.advance()
+				else:
+					break
+				#print('parameter list', self.tokenizer.currentToken)
 				self.writeXML(self.tokenizer.tokenXML) # <type> 
 				symType = self.tokenizer.currentToken
 
 				self.tokenizer.advance()
+				#print('parameter list', self.tokenizer.currentToken)
 				self.writeXML(self.tokenizer.tokenXML) # <var-name>
 				symName = self.tokenizer.currentToken
 
@@ -207,7 +212,6 @@ class CompilationEngine:
 				self.incTabLevel()
 				self.writeSymTableXML(symName, self.__subSymTable)
 				self.decTabLevel()
-
 				self.tokenizer.advance()
 
 
@@ -239,8 +243,8 @@ class CompilationEngine:
 				self.compileVarDec()
 				
 				nLocals = self.__subSymTable.VarCount("local")		# get the count of local variables
-				if subroutineType in ["constructor", "method"]:
-					nLocals = nLocals + 1
+				#if subroutineType in ["constructor", "method"]:
+				#	nLocals = nLocals + 1
 				
 			else:
 				# we are now know all the local vars and can write the vm code for the function
@@ -427,6 +431,7 @@ class CompilationEngine:
 		getClosingParenNext = False
 		getOpeningCurlyBraceNext = False
 		doElseStatement = False 				# if True, then processing an else statement
+		writeLabelL2 = True
 
 		while (self.tokenizer.hasMoreTokens()):		
 			self.tokenizer.advance()
@@ -458,6 +463,7 @@ class CompilationEngine:
 						self.vmWriter.writeLabel(L1)			# label L1
 					else:
 						self.vmWriter.writeLabel(L2)
+						writeLabelL2 = False 					# prevent writing label twice
 					self.writeXML(self.tokenizer.tokenXML) # }
 					
 					if self.tokenizer.hasMoreTokens():
@@ -467,8 +473,10 @@ class CompilationEngine:
 							
 							doElseStatement = True
 							getOpeningCurlyBraceNext = True
-						else:
+						elif writeLabelL2:
 							self.vmWriter.writeLabel(L2)	# to handle the case where there is no else statement
+							break
+						else:
 							break
 					else:
 						break
@@ -551,10 +559,9 @@ class CompilationEngine:
 			
 			if self.tokenizer.currentToken == "(":
 				nArgs = self.compileExpressionList()
-
-				if subroutineType == "method":		# additional argment for This object reference
+				if subroutineType == "method":
 					nArgs = nArgs + 1
-
+				print("compileDo",subroutineName, str(nArgs))
 
 				self.vmWriter.writeCall(subroutineName, nArgs)
 				self.vmWriter.writePop("temp", 0)				# discard the return value
@@ -744,8 +751,9 @@ class CompilationEngine:
 					subroutineName = self.tokenizer.currentToken
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # (
-					nLocals = self.compileExpressionList()
-					self.vmWriter.writeCall(subroutineName, nLocals)		# write subroutine call to vm file
+					nArgs = self.compileExpressionList()
+					self.vmWriter.writeCall(subroutineName, nArgs)		# write subroutine call to vm file
+					print("compileTerm", subroutineName, str(nArgs))
 					if self.tokenizer.nextToken == ")":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML) 
@@ -762,8 +770,10 @@ class CompilationEngine:
 					if varKind != None:											# this is an object reference, and we need to call the method on its Class
 						self.vmWriter.writePush(varKind, varIdx)
 						subroutineName = varType
+						subroutineType = "method"
 					else:
 						subroutineName = self.tokenizer.currentToken			# this is a function call of a class
+						subroutineType = "function"
 
 					self.tokenizer.advance()
 					self.writeXML(self.tokenizer.tokenXML)  # .
@@ -775,8 +785,12 @@ class CompilationEngine:
 					if self.tokenizer.nextToken == "(":
 						self.tokenizer.advance()
 						self.writeXML(self.tokenizer.tokenXML)
-						nLocals = self.compileExpressionList()
-						self.vmWriter.writeCall(subroutineName, nLocals)		# write subroutine call to vm file
+						nArgs = self.compileExpressionList()
+						if subroutineType == "method":
+							nArgs = nArgs + 1  # need to add 1 to nArgs if this is a method call error, need to know whether a function
+
+						self.vmWriter.writeCall(subroutineName, nArgs)		# write subroutine call to vm file
+						print("compileTerm2",subroutineName, str(nArgs))
 						if self.tokenizer.nextToken == ")": 
 							self.tokenizer.advance()
 							self.writeXML(self.tokenizer.tokenXML)
