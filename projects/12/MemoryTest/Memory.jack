@@ -1,0 +1,123 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Memory.jack
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory {
+
+    static Array ram;
+    static Array heap;
+    static int freelist;        // beginning of the first free block
+    static int endlist;         // the last free block
+
+    /** Initializes the class. */
+    function void init() {
+        let ram = 0;
+        let heap = 2048;        // By convention is the base address of the heap
+        let freelist = heap;
+        let endlist = heap;
+        let heap[0] = 0;        // There is no next available segment at this point
+        let heap[1] = 14333;    // Base address of the next RAM block (I/O) 16384 - 2048 - 2
+
+        return;
+    }
+
+    /** Returns the RAM value at the given address. */
+    function int peek(int address) {
+        return ram[address];
+    }
+
+    /** Sets the RAM value at the given address to the given value. */
+    function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
+    }
+
+    /** Finds an available RAM block of the given size and returns
+     *  a reference to its base address. */
+    function int alloc(int size) {
+
+        /**
+        while there are free blocks to search
+            if this free block is >= size + 2 then 
+                decrease the size of the current block by size + 2
+                    if this is the entire size of the block, then must update the pointer of the previous block to the next of this block
+                    update the freelist pointer to next if this is the first block
+                set the next of the allocated block to 0
+                update the size of the allocated block
+                return the address of the allocated block
+        */
+
+        var boolean hasMoreBlocks;          // true when there is another free block to evaluate
+        var int addrCurrentFreeBlock;       // address of the current free block
+        var int addrPreviousFreeBlock;      // address of the prior free block, used for relinking the list
+        var int sizeCurrentFreeBlock;       // size of the current free block
+
+        let hasMoreBlocks = true;
+        let addrCurrentFreeBlock = freelist;
+        let addrPreviousFreeBlock = 0;
+
+        while (hasMoreBlocks) {
+            
+            let sizeCurrentFreeBlock = Memory.peek(addrCurrentFreeBlock + 1);
+            //do Output.printInt(size + 1); do Output.println();
+
+            if (sizeCurrentFreeBlock > (size + 1)) {                          // is true when there are size + 2 words in the free block
+                do Output.printInt(sizeCurrentFreeBlock); do Output.println();
+
+                if (sizeCurrentFreeBlock = (size + 2)) {                      // handles the case where the entire block is used and the linked list needs to be updated
+
+                    if (addrCurrentFreeBlock = freelist) {                  // handles the case where the first block in the linked list is used
+                        let freelist = Memory.peek(addrCurrentFreeBlock);   // sets freelist to point to the next free block
+                    }
+                    
+                    else {
+                        do Memory.poke(addrPreviousFreeBlock, Memory.peek(addrCurrentFreeBlock)); // connects the previous free block to the next
+                    }
+
+                    // return the free block
+                    return (addrCurrentFreeBlock + 2);
+
+                }
+
+
+                else {                                                                              // the current block is big enough to handle this request
+                    
+                    do Output.printInt(addrCurrentFreeBlock + 1); do Output.println();
+                    do Memory.poke(addrCurrentFreeBlock + 1, sizeCurrentFreeBlock - (size + 2));    // decrement the size of the current block
+                    return(addrCurrentFreeBlock + sizeCurrentFreeBlock + 2 - size);                 // return the bottom portion of the free block
+                }
+
+
+            
+            }
+
+            else {
+                let addrPreviousFreeBlock = addrCurrentFreeBlock;
+                let addrCurrentFreeBlock = Memory.peek(addrCurrentFreeBlock);
+                let hasMoreBlocks = (addrCurrentFreeBlock = 0);      // if the address of the next free block is 0, then we've reached the end of the linked list
+            }
+
+
+        }
+
+        do Output.printString("Nothing allocated");
+        return -1; // this is an error condition if reached here
+
+    }
+
+    /** De-allocates the given object (cast as an array) by making
+     *  it available for future allocations. */
+
+    function void deAlloc(Array addrObject) {
+        do Memory.poke(endlist, addrObject - 2);       // append the object's memory to the end of the heap linked list
+        let endlist = addrObject - 2;               // reset the end of the list
+        do Memory.poke(endlist, 0);                    // add the terminal value to the end of the linked list
+        return;
+    }    
+}
