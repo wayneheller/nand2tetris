@@ -92,7 +92,6 @@ class Keyboard {
             let c = Keyboard.readChar();
 
             if (c = String.newLine()) {
-                //do Output.println();
                 return str;
             }
             
