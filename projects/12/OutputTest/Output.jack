@@ -246,6 +246,16 @@ class Output {
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
+
+        var String s;
+
+        let s = s.setInt(i);
+
+        do Output.printString(s);
+
+        return;
+        
+    /**
         var int value, start, j;
         var Array digits;
 
@@ -279,6 +289,9 @@ class Output {
             let j=j-1;
         }
         return;
+        */
+
+        
     }
 
     /** Advances the cursor to the beginning of the next line. */
