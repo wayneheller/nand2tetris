@@ -18,6 +18,8 @@ class Sys {
 
         do Main.main();
 
+        return;
+
     }
 
     /** Halts the program execution. */

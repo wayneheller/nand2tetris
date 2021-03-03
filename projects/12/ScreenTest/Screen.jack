@@ -124,7 +124,7 @@ class Screen {
         }
 
         let a = 0;
-        let dx = Math.abs(x2 - x1);
+        let dx = Math.abs(x2 - x1) + 1;
 
         while (a < dx) {
 

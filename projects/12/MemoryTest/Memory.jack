@@ -68,7 +68,7 @@ class Memory {
             //do Output.printInt(size + 1); do Output.println();
 
             if (sizeCurrentFreeBlock > (size + 1)) {                          // is true when there are size + 2 words in the free block
-                do Output.printInt(sizeCurrentFreeBlock); do Output.println();
+                //do Output.printInt(sizeCurrentFreeBlock); do Output.println();
 
                 if (sizeCurrentFreeBlock = (size + 2)) {                      // handles the case where the entire block is used and the linked list needs to be updated
 
@@ -88,7 +88,7 @@ class Memory {
 
                 else {                                                                              // the current block is big enough to handle this request
                     
-                    do Output.printInt(addrCurrentFreeBlock + 1); do Output.println();
+                    // do Output.printInt(addrCurrentFreeBlock + 1); do Output.println();
                     do Memory.poke(addrCurrentFreeBlock + 1, sizeCurrentFreeBlock - (size + 2));    // decrement the size of the current block
                     return(addrCurrentFreeBlock + sizeCurrentFreeBlock + 2 - size);                 // return the bottom portion of the free block
                 }
@@ -106,7 +106,7 @@ class Memory {
 
         }
 
-        do Output.printString("Nothing allocated");
+        //do Output.printString("Nothing allocated");
         return -1; // this is an error condition if reached here
 
     }
