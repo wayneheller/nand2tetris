@@ -18,6 +18,10 @@ class Sys {
 
         do Main.main();
 
+        while(true) {
+            // do thing
+        }
+
         return;
 
     }
